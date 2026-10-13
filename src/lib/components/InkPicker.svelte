@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { inkColor, NEUTRAL_INK, resolveTeamColor, STATION_NAMES, STATIONS, stationAlliance, teamInk, type AllianceColor, type BenchTeams, type Lineup, type StationKey, type TeamColorOverrides } from "$lib/domain";
+  import { inkColor, NEUTRAL_INK, resolveTeamColor, STATION_NAMES, STATIONS, stationAlliance, teamInk, teamNumberKey, type AllianceColor, type BenchTeams, type Lineup, type StationKey, type TeamColorOverrides } from "$lib/domain";
   import { native } from "$lib/native/api";
 
-  let { lineup, ink, overrides, hiddenTeams, bench, onPick, onToggleHidden, onSavePath, onSwapBench }: {
+  let { lineup, ink, overrides, hiddenTeams, bench, onPick, onToggleHidden, onSavePath, onSwapBench, onRecolor }: {
     lineup: Lineup;
     ink: number;
     overrides: TeamColorOverrides;
@@ -13,13 +13,15 @@
     onSavePath: (station: StationKey) => void;
     bench: BenchTeams;
     onSwapBench: (station: StationKey) => void;
+    onRecolor: (team: string, color: string | null) => void;
   } = $props();
 
   const LAST_STATION: Partial<Record<StationKey, AllianceColor>> = { redThree: "red", blueThree: "blue" };
+  const COLOR_CHOICES = ["#ffffff", "#9ca3af", "#facc15", "#fb923c", "#ef4444", "#f472b6", "#a855f7", "#3b82f6", "#38bdf8", "#2dd4bf", "#22c55e"];
 
-  type Menu = { kind: "team"; station: StationKey; team: string; top: number } | { kind: "bench"; alliance: AllianceColor; team: string; top: number };
+  type Menu = { kind: "team"; station: StationKey; team: string } | { kind: "bench"; alliance: AllianceColor; team: string };
   let menu = $state<Menu | null>(null);
-  let menuOnLeft = $state(false);
+  let menuPlace = $state({ edge: 0, up: false, left: false });
 
   let expanded = $state(true);
   let closing = $state(false);
@@ -113,14 +115,20 @@
     onPick(chipInk);
   }
 
-  function openMenu(next: Menu) {
+  // the menu opens away from whichever board edges the trigger is near so it stays on screen
+  function openMenu(next: Menu, trigger: HTMLElement) {
     menu = menu && menu.kind === next.kind && menu.team === next.team ? null : next;
     const area = picker?.parentElement;
-    if (menu && picker && area) {
-      const rect = picker.getBoundingClientRect();
-      const areaRect = area.getBoundingClientRect();
-      menuOnLeft = rect.left + rect.width / 2 > areaRect.left + areaRect.width / 2;
-    }
+    if (!menu || !picker || !area) return;
+    const pickerRect = picker.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    const areaRect = area.getBoundingClientRect();
+    const up = triggerRect.top + triggerRect.height / 2 > areaRect.top + areaRect.height / 2;
+    menuPlace = {
+      edge: up ? picker.clientHeight - trigger.offsetTop - trigger.offsetHeight : trigger.offsetTop,
+      up,
+      left: pickerRect.left + pickerRect.width / 2 > areaRect.left + areaRect.width / 2,
+    };
   }
 
   function collapse() {
@@ -167,7 +175,7 @@
         >
           <i class="fas {chip.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
         </button>
-        <button class="ink-eye" aria-label={`More for team ${chip.team}`} aria-expanded={menu?.kind === "team" && menu.station === station} onclick={(event) => openMenu({ kind: "team", station, team: chip.team, top: event.currentTarget.offsetTop })}>
+        <button class="ink-eye" aria-label={`More for team ${chip.team}`} aria-expanded={menu?.kind === "team" && menu.station === station} onclick={(event) => openMenu({ kind: "team", station, team: chip.team }, event.currentTarget)}>
           <i class="fas fa-ellipsis-vertical"></i>
         </button>
       {/if}
@@ -180,7 +188,7 @@
           class="ink-pick"
           aria-label={`Bench Team ${benchTeam}, swap into a Station`}
           aria-expanded={menu?.kind === "bench" && menu.alliance === benchAlliance}
-          onclick={(event) => openMenu({ kind: "bench", alliance: benchAlliance, team: benchTeam, top: event.currentTarget.offsetTop })}
+          onclick={(event) => openMenu({ kind: "bench", alliance: benchAlliance, team: benchTeam }, event.currentTarget)}
         >
           <span class="ink-swatch" style:background={resolveTeamColor(benchTeam, overrides)}></span>
           <span>{benchTeam}</span>
@@ -192,8 +200,40 @@
   {#if menu}
     {@const current = menu}
     <button class="ink-menu-backdrop" aria-label="Close the team menu" onclick={() => (menu = null)}></button>
-    <div class="ink-menu" class:on-left={menuOnLeft} style:top="{current.top}px" role="menu" aria-label={`Team ${current.team}`}>
+    <div
+      class="ink-menu"
+      class:on-left={menuPlace.left}
+      style:top={menuPlace.up ? null : `${menuPlace.edge}px`}
+      style:bottom={menuPlace.up ? `${menuPlace.edge}px` : null}
+      role="menu"
+      aria-label={`Team ${current.team}`}
+    >
       {#if current.kind === "team"}
+        {@const team = current.team}
+        {@const key = teamNumberKey(team)}
+        {#if key}
+          {@const color = resolveTeamColor(team, overrides)}
+          <div class="ink-colors" role="group" aria-label={`Color for team ${team}`}>
+            {#each COLOR_CHOICES as choice (choice)}
+              <button
+                class="ink-color"
+                role="menuitemradio"
+                aria-checked={choice === color}
+                aria-label={`Color team ${team} ${choice}`}
+                style:background={choice}
+                onclick={() => onRecolor(team, choice)}
+              ></button>
+            {/each}
+            <span class="ink-color ink-color-custom">
+              <input type="color" value={color} aria-label={`Pick any color for team ${team}`} onchange={(event) => onRecolor(team, event.currentTarget.value)} />
+            </span>
+          </div>
+          <!-- always rendered so picking a color never shifts the swatches under the finger -->
+          <button role="menuitem" disabled={!overrides[key]} onclick={() => onRecolor(team, null)}>
+            <span class="ink-swatch" style:background={resolveTeamColor(team)}></span> Use scouting app color
+          </button>
+          <div class="ink-menu-divider" role="separator"></div>
+        {/if}
         <button role="menuitem" onclick={() => { const { station } = current; menu = null; onSavePath(station); }}>
           <i class="fas fa-route w-5"></i> Save as Common Path…
         </button>
@@ -326,6 +366,45 @@
     cursor: pointer;
   }
   .ink-menu button:hover { background: #252525; }
+  .ink-menu button:disabled {
+    opacity: 0.4;
+    background: transparent;
+    cursor: default;
+  }
+  .ink-colors {
+    display: grid;
+    grid-template-columns: repeat(6, 2.25rem);
+    gap: 0.45rem;
+    padding: 0.5rem 0.55rem;
+  }
+  .ink-menu .ink-color {
+    position: relative;
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+  }
+  .ink-menu .ink-color[aria-checked="true"] { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ffffff; }
+  .ink-color-custom {
+    overflow: hidden;
+    background: conic-gradient(#ef4444, #facc15, #22c55e, #38bdf8, #a855f7, #ef4444);
+  }
+  .ink-color-custom input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .ink-menu-divider {
+    height: 1px;
+    margin: 0.35rem 0;
+    background: #2a2a2a;
+  }
   #whiteboard-ink-picker.ink-picker-hidden .ink-chip {
     animation: colorItemSlideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }

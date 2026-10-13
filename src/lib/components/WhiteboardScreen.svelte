@@ -5,7 +5,7 @@
   import { scheduleSync } from "$lib/stores/sync.svelte";
   import { createWhiteboardController, whiteboardMatchFromPacket, writeWhiteboardPacket, type WhiteboardController, type WhiteboardMatch, type WhiteboardMode, type WhiteboardState } from "$lib/whiteboard";
   import { newId, safeFilename, savePng } from "$lib/features";
-  import { addCommonPath, carryOverToLineup, commonPathChoices, matchFieldYear, packetLineup, phaseName, readExtras, readTicks, saveCommonPath, STATIONS, swapBenchTeam, toggleTick, type CommonPath, type Lineup, type MatchPhase, type StationKey } from "$lib/domain";
+  import { addCommonPath, carryOverToLineup, commonPathChoices, matchFieldYear, packetLineup, phaseName, readExtras, readTicks, removeTeamColorOverride, saveCommonPath, setTeamColorOverride, STATIONS, swapBenchTeam, toggleTick, type CommonPath, type Lineup, type MatchPhase, type StationKey } from "$lib/domain";
   import { native } from "$lib/native/api";
   import type { MatchPacket } from "$lib/native/types";
   import ApplyCommonPathModal from "./ApplyCommonPathModal.svelte";
@@ -83,6 +83,11 @@
       const source = app.packets.find((packet) => packet[7] === id);
       return source ? app.commitPacket(toggleTick(source, boardConfig.current.checklist, itemId)) : undefined;
     }).catch(() => onNotice("Could not save that tick."));
+  }
+
+  function recolorTeam(team: string, color: string | null) {
+    const config = boardConfig.current;
+    void boardConfig.update(color ? setTeamColorOverride(config, team, color) : removeTeamColorOverride(config, team));
   }
 
   function toggleChecklist() {
@@ -297,7 +302,7 @@
           </div>
 
           {#if lineup}
-            <InkPicker {lineup} ink={ui.ink} overrides={boardConfig.current.teamColors} hiddenTeams={ui.hiddenTeams} onPick={(ink) => controller?.setInk(ink)} onToggleHidden={(team) => controller?.toggleHiddenTeam(team)} onSavePath={(station) => (savePathFor = station)} {bench} onSwapBench={swapBench} />
+            <InkPicker {lineup} ink={ui.ink} overrides={boardConfig.current.teamColors} hiddenTeams={ui.hiddenTeams} onPick={(ink) => controller?.setInk(ink)} onToggleHidden={(team) => controller?.toggleHiddenTeam(team)} onSavePath={(station) => (savePathFor = station)} {bench} onSwapBench={swapBench} onRecolor={recolorTeam} />
           {/if}
         {/if}
       </div>
