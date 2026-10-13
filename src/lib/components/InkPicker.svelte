@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { inkColor, NEUTRAL_INK, resolveTeamColor, STATION_NAMES, STATIONS, stationAlliance, teamInk, type AllianceColor, type BenchTeams, type Lineup, type StationKey, type TeamColorOverrides } from "$lib/domain";
+  import { native } from "$lib/native/api";
 
   let { lineup, ink, overrides, hiddenTeams, bench, onPick, onToggleHidden, onSavePath, onSwapBench }: {
     lineup: Lineup;
@@ -17,9 +19,83 @@
 
   type Menu = { kind: "team"; station: StationKey; team: string; top: number } | { kind: "bench"; alliance: AllianceColor; team: string; top: number };
   let menu = $state<Menu | null>(null);
+  let menuOnLeft = $state(false);
 
   let expanded = $state(true);
   let closing = $state(false);
+
+  type Offset = { x: number; y: number };
+  const OFFSET_KEY = "inkPickerOffset";
+  const DRAG_THRESHOLD = 8;
+  let picker = $state<HTMLDivElement>();
+  let offset = $state.raw<Offset>({ x: 0, y: 0 });
+  let drag: { id: number; x: number; y: number; from: Offset; moving: boolean } | null = null;
+  let swallowClick = false;
+
+  function clamped(next: Offset): Offset {
+    const area = picker?.parentElement;
+    if (!picker || !area) return next;
+    const homeLeft = picker.offsetLeft - offset.x;
+    const homeTop = picker.offsetTop - offset.y;
+    const minX = -homeLeft;
+    const minY = -homeTop;
+    const maxX = Math.max(minX, area.clientWidth - homeLeft - picker.offsetWidth);
+    const maxY = Math.max(minY, area.clientHeight - homeTop - picker.offsetHeight);
+    return { x: Math.min(Math.max(next.x, minX), maxX), y: Math.min(Math.max(next.y, minY), maxY) };
+  }
+
+  function startDrag(event: PointerEvent) {
+    swallowClick = false;
+    if (drag || menu || event.button !== 0) return;
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, from: offset, moving: false };
+  }
+
+  function moveDrag(event: PointerEvent) {
+    if (!drag || drag.id !== event.pointerId) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (!drag.moving) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      drag.moving = true;
+      picker?.setPointerCapture(event.pointerId);
+    }
+    offset = clamped({ x: drag.from.x + dx, y: drag.from.y + dy });
+  }
+
+  function endDrag(event: PointerEvent) {
+    if (!drag || drag.id !== event.pointerId) return;
+    if (drag.moving) {
+      swallowClick = true;
+      void native.storage.set(OFFSET_KEY, offset).catch(() => undefined);
+    }
+    drag = null;
+  }
+
+  // a drag that started on a chip must not also pick it
+  function guardClick(event: MouseEvent) {
+    if (!swallowClick) return;
+    swallowClick = false;
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  onMount(() => {
+    void native.storage.get(OFFSET_KEY).then((stored) => {
+      if (stored && typeof stored === "object" && "x" in stored && "y" in stored && typeof stored.x === "number" && typeof stored.y === "number") {
+        offset = clamped({ x: stored.x, y: stored.y });
+      }
+    }, () => undefined);
+  });
+
+  // expanding or rotating the tablet can push a moved picker off the board
+  $effect(() => {
+    const area = picker?.parentElement;
+    if (!picker || !area) return;
+    const observer = new ResizeObserver(() => { offset = clamped(offset); });
+    observer.observe(picker);
+    observer.observe(area);
+    return () => observer.disconnect();
+  });
 
   const chips = $derived([
     { ink: NEUTRAL_INK, station: null, team: "", label: "Neutral", color: "#ffffff", alliance: "", empty: false, hidden: false },
@@ -39,6 +115,12 @@
 
   function openMenu(next: Menu) {
     menu = menu && menu.kind === next.kind && menu.team === next.team ? null : next;
+    const area = picker?.parentElement;
+    if (menu && picker && area) {
+      const rect = picker.getBoundingClientRect();
+      const areaRect = area.getBoundingClientRect();
+      menuOnLeft = rect.left + rect.width / 2 > areaRect.left + areaRect.width / 2;
+    }
   }
 
   function collapse() {
@@ -47,12 +129,21 @@
   }
 </script>
 
+<svelte:window onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} />
+
+<!-- shifted with margins not translate - a transform would trap the fixed menu backdrop inside the picker -->
 <div
+  bind:this={picker}
   id="whiteboard-ink-picker"
-  class="absolute flex flex-col gap-1.5 bottom-3 sm:bottom-4 md:bottom-6 left-3 sm:left-4 md:left-6 p-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-[1.6rem]"
+  class="absolute flex flex-col gap-1.5 bottom-3 sm:bottom-4 md:bottom-6 left-3 sm:left-4 md:left-6 p-2 bg-[#1a1a1a] border border-[#3a3a3a] rounded-[1.6rem] select-none touch-none"
   class:ink-picker-hidden={closing}
+  style:margin-left="{offset.x}px"
+  style:margin-bottom="{-offset.y}px"
   role="toolbar"
   aria-label="Ink"
+  tabindex="-1"
+  onpointerdown={startDrag}
+  onclickcapture={guardClick}
 >
   {#each chips as chip (chip.ink)}
     <div class="ink-chip {chip.alliance}" class:selected={chip.ink === ink} class:empty={chip.empty} class:hidden-team={chip.hidden} class:collapsed-away={!expanded && chip.ink !== ink}>
@@ -101,7 +192,7 @@
   {#if menu}
     {@const current = menu}
     <button class="ink-menu-backdrop" aria-label="Close the team menu" onclick={() => (menu = null)}></button>
-    <div class="ink-menu" style:top="{current.top}px" role="menu" aria-label={`Team ${current.team}`}>
+    <div class="ink-menu" class:on-left={menuOnLeft} style:top="{current.top}px" role="menu" aria-label={`Team ${current.team}`}>
       {#if current.kind === "team"}
         <button role="menuitem" onclick={() => { const { station } = current; menu = null; onSavePath(station); }}>
           <i class="fas fa-route w-5"></i> Save as Common Path…
@@ -214,6 +305,10 @@
     border-radius: 0.75rem;
     background: #1a1a1a;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+  .ink-menu.on-left {
+    left: auto;
+    right: calc(100% + 0.5rem);
   }
   .ink-menu button {
     display: flex;
