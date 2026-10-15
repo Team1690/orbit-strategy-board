@@ -1,6 +1,6 @@
 name: strategy-board
 options:
-  bundleIdPrefix: app.strategyboard
+  bundleIdPrefix: io.github.team1690.strategyboard
   deploymentTarget:
     iOS: 14.0
 fileGroups: [../../src]
@@ -11,7 +11,7 @@ settingGroups:
   app:
     base:
       PRODUCT_NAME: Orbit Strategy Board
-      PRODUCT_BUNDLE_IDENTIFIER: app.strategyboard
+      PRODUCT_BUNDLE_IDENTIFIER: io.github.team1690.strategyboard
 targetTemplates:
   app:
     type: application

@@ -15,10 +15,10 @@ val tauriProperties = Properties().apply {
 
 android {
     compileSdk = 36
-    namespace = "app.strategyboard"
+    namespace = "io.github.team1690.strategyboard"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
-        applicationId = "app.strategyboard"
+        applicationId = "io.github.team1690.strategyboard"
         minSdk = 24
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
@@ -26,6 +26,7 @@ android {
     }
     buildTypes {
         getByName("debug") {
+            applicationIdSuffix = ".dev"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             isDebuggable = true
             isJniDebuggable = true

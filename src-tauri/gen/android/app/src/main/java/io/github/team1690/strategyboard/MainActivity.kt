@@ -1,4 +1,4 @@
-package app.strategyboard
+package io.github.team1690.strategyboard
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
