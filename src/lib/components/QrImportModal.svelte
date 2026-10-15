@@ -68,6 +68,17 @@
   panelClass="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-between bg-[#141414] border border-[#1e1e1e] rounded-[6px] p-4 max-h-[90vh] overflow-y-auto"
   {onClose}
 >
+  <div class="w-full flex justify-start mb-3">
+    <button
+      id="qr-import-back-btn"
+      class="flex items-center justify-center gap-2 px-4 h-9 btn-secondary text-sm font-semibold"
+      onclick={onClose}
+    >
+      <i class="fas fa-arrow-left"></i>
+      <span>Back</span>
+    </button>
+  </div>
+
   <div id="qr-import-status" class="mb-3 text-[#e8e8e8] font-semibold select-none">
     <span id="qr-import-status-text" aria-live="polite">{status}</span>
   </div>
