@@ -16,6 +16,18 @@ describe("Team Colors", () => {
     expect(resolveTeamColor("11480", { "11480": "#ff8800" })).toBe("#ff8800");
   });
 
+  it("are drawn just light enough to stand out on the dark board when Auto-Lighten is on, keeping their hue", () => {
+    expect(resolveTeamColor("1", {}, true)).toBe("#5f5f5f");
+    expect(resolveTeamColor("1690", {}, true)).toBe("#3b3bff");
+    expect(resolveTeamColor("67", {}, true)).toBe("#c00300");
+    expect(resolveTeamColor("11", {}, true)).toBe("#ffc100");
+    expect(resolveTeamColor("1690", {}, false)).toBe("#0100fc");
+  });
+
+  it("never lighten this device's override", () => {
+    expect(resolveTeamColor("1690", { "1690": "#000080" }, true)).toBe("#000080");
+  });
+
   it("can be overridden, changed, and reset on the device through the Board Config", () => {
     let config = setTeamColorOverride(emptyBoardConfig(), "1690", "#33AAFF");
     expect(resolveTeamColor("1690", config.teamColors)).toBe("#33aaff");
@@ -32,5 +44,11 @@ describe("Team Colors", () => {
 
     expect(config.teamColors).toEqual({ "1690": "#33aaff", "254": "#00ff00" });
     expect(readBoardConfig(null)).toEqual(emptyBoardConfig());
+  });
+
+  it("have Auto-Lighten on unless the stored Board Config turned it off", () => {
+    expect(emptyBoardConfig().autoLighten).toBe(true);
+    expect(readBoardConfig({ teamColors: {} }).autoLighten).toBe(true);
+    expect(readBoardConfig({ autoLighten: false }).autoLighten).toBe(false);
   });
 });

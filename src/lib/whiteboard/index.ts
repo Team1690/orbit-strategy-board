@@ -65,6 +65,7 @@ export class WhiteboardController {
   private abortController: AbortController | null = null;
   private layout = { scale: 1, left: 0, top: 0 };
   private teamColors: TeamColorOverrides = {};
+  private autoLighten = false;
   private hiddenTeams = new Set<string>();
   private readonly options: Required<Pick<WhiteboardControllerOptions, "fieldImages">> & Omit<WhiteboardControllerOptions, "fieldImages">;
 
@@ -157,7 +158,7 @@ export class WhiteboardController {
   }
   toggleView(): void { this.view = this.view === "full" ? "red" : this.view === "red" ? "blue" : "full"; this.camera = VIEWS[this.view]; this.redrawAll(); this.emitState(); }
   forceRedraw(): void { this.redrawAll(); }
-  setTeamColorOverrides(overrides: TeamColorOverrides): void { this.teamColors = overrides; this.drawItems(); this.redrawDrawing(); }
+  setTeamColors(overrides: TeamColorOverrides, autoLighten: boolean): void { this.teamColors = overrides; this.autoLighten = autoLighten; this.drawItems(); this.redrawDrawing(); }
   resetMode(): void { this.setMode("auto"); }
 
   canUndo(): boolean { const mode = this.dataMode(); return !!mode && (this.undoHistory.get(mode)?.length ?? 0) > 0; }
@@ -318,7 +319,7 @@ export class WhiteboardController {
     context.fillStyle = "#242429"; context.beginPath(); context.roundRect(-robot.w / 2 + 17, -robot.h / 2 + 17, robot.w - 34, robot.h - 34, 10); context.fill();
     const teamNumber = this.match?.[slot].trim();
     if (teamNumber) {
-      context.fillStyle = resolveTeamColor(teamNumber, this.teamColors); context.strokeStyle = "rgba(255,255,255,0.35)"; context.lineWidth = 3;
+      context.fillStyle = resolveTeamColor(teamNumber, this.teamColors, this.autoLighten); context.strokeStyle = "rgba(255,255,255,0.35)"; context.lineWidth = 3;
       context.beginPath(); context.roundRect(-robot.w / 2 + 27, robot.h / 2 - 49, robot.w - 54, 22, 6); context.fill(); context.stroke();
     }
     context.fillStyle = "#fff"; context.font = "bold 48px sans-serif"; context.textAlign = "center"; context.textBaseline = "middle"; if (this.match && (this.view === "full" || (this.view === "blue") === isBlue(slot))) context.fillText(this.match[slot], 0, 0);
@@ -342,7 +343,7 @@ export class WhiteboardController {
   private drawStrokeSegment(start: Point, end: Point, ink: number): void { const context = this.contexts?.drawing; if (!context) return; const a = this.screen(start); const b = this.screen(end); context.lineWidth = 10; context.lineCap = "round"; context.lineJoin = "round"; context.strokeStyle = this.strokeColor(ink); context.beginPath(); context.moveTo(a[0], a[1]); context.lineTo(b[0], b[1]); context.stroke(); }
   private drawCheckbox(context: CanvasRenderingContext2D, checkbox: CheckboxAnnotation): void { const [x, y] = this.screen([checkbox[0], checkbox[1]]); const size = 150; context.strokeStyle = officialInkColor(checkbox[2]); context.lineWidth = 8; context.strokeRect(x - size / 2, y - size / 2, size, size); if (checkbox[3]) { context.strokeStyle = "#22c55e"; context.lineWidth = 12; context.lineCap = "round"; context.beginPath(); context.moveTo(x - size / 2 + 15, y); context.lineTo(x - size / 6, y + size / 2 - 15); context.lineTo(x + size / 2 - 15, y - size / 2 + 15); context.stroke(); } }
   private inkTeam(ink: number): string | null { const station = inkStation(ink); return station && this.match ? this.match[station].trim() || null : null; }
-  private strokeColor(ink: number): string { return this.match ? inkColor(ink, lineupOf(this.match), this.teamColors) : officialInkColor(ink); }
+  private strokeColor(ink: number): string { return this.match ? inkColor(ink, lineupOf(this.match), this.teamColors, this.autoLighten) : officialInkColor(ink); }
   private eventPoint(event: PointerEvent): Point | null { if (!this.refs) return null; const rect = this.refs.drawing.getBoundingClientRect(); if (!rect.width || !rect.height) return null; return [(event.clientX - rect.left) / this.layout.scale + this.camera[0] - FIELD_WIDTH / 2, (event.clientY - rect.top) / this.layout.scale + this.camera[1] - FIELD_HEIGHT / 2]; }
   private pose(robot: RobotPosition): Pick<RobotPosition, "x" | "y" | "r"> { return { x: robot.x, y: robot.y, r: robot.r }; }
   private robotAt(point: Point): { slot: Slot; robot: RobotPosition; offset: Point } | null { const phase = this.phase(); if (!phase || this.mode === "notes") return null; for (const slot of [...slots].reverse()) { const robot = phase[`${slot}Robot`]; if (pointInRotatedRect(point, [robot.x, robot.y], robot.w, robot.h, robot.r)) return { slot, robot, offset: [robot.x - point[0], robot.y - point[1]] }; } return null; }
