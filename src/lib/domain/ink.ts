@@ -23,11 +23,11 @@ export function officialInkColor(ink: number): string {
   return LEGACY_INK_COLORS[Number.isInteger(ink) && ink >= 0 && ink < LEGACY_INK_COLORS.length ? ink : 0];
 }
 
-export function inkColor(ink: number, lineup: Lineup, overrides: TeamColorOverrides): string {
+export function inkColor(ink: number, lineup: Lineup, overrides: TeamColorOverrides, autoLighten = false): string {
   const station = inkStation(ink);
   if (!station) return officialInkColor(ink);
   const team = lineup[station].trim();
-  return team ? resolveTeamColor(team, overrides) : LEGACY_INK_COLORS[NEUTRAL_INK];
+  return team ? resolveTeamColor(team, overrides, autoLighten) : LEGACY_INK_COLORS[NEUTRAL_INK];
 }
 
 export function defaultInk(lineup: Lineup): number {

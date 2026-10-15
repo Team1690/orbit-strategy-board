@@ -3,10 +3,11 @@
   import { inkColor, NEUTRAL_INK, resolveTeamColor, STATION_NAMES, STATIONS, stationAlliance, teamInk, teamNumberKey, type AllianceColor, type BenchTeams, type Lineup, type StationKey, type TeamColorOverrides } from "$lib/domain";
   import { native } from "$lib/native/api";
 
-  let { lineup, ink, overrides, hiddenTeams, bench, onPick, onToggleHidden, onSavePath, onSwapBench, onRecolor }: {
+  let { lineup, ink, overrides, autoLighten, hiddenTeams, bench, onPick, onToggleHidden, onSavePath, onSwapBench, onRecolor }: {
     lineup: Lineup;
     ink: number;
     overrides: TeamColorOverrides;
+    autoLighten: boolean;
     hiddenTeams: readonly string[];
     onPick: (ink: number) => void;
     onToggleHidden: (team: string) => void;
@@ -104,7 +105,7 @@
     ...STATIONS.map((station) => {
       const team = lineup[station].trim();
       return {
-        ink: teamInk(station), station, team, label: team || "Empty", color: inkColor(teamInk(station), lineup, overrides),
+        ink: teamInk(station), station, team, label: team || "Empty", color: inkColor(teamInk(station), lineup, overrides, autoLighten),
         alliance: stationAlliance(station), empty: !team, hidden: Boolean(team) && hiddenTeams.includes(team),
       };
     }),
@@ -190,7 +191,7 @@
           aria-expanded={menu?.kind === "bench" && menu.alliance === benchAlliance}
           onclick={(event) => openMenu({ kind: "bench", alliance: benchAlliance, team: benchTeam }, event.currentTarget)}
         >
-          <span class="ink-swatch" style:background={resolveTeamColor(benchTeam, overrides)}></span>
+          <span class="ink-swatch" style:background={resolveTeamColor(benchTeam, overrides, autoLighten)}></span>
           <span>{benchTeam}</span>
           <span class="bench-label">Bench <i class="fas fa-right-left"></i></span>
         </button>
@@ -212,7 +213,7 @@
         {@const team = current.team}
         {@const key = teamNumberKey(team)}
         {#if key}
-          {@const color = resolveTeamColor(team, overrides)}
+          {@const color = resolveTeamColor(team, overrides, autoLighten)}
           <div class="ink-colors" role="group" aria-label={`Color for team ${team}`}>
             {#each COLOR_CHOICES as choice (choice)}
               <button
@@ -230,7 +231,7 @@
           </div>
           <!-- always rendered so picking a color never shifts the swatches under the finger -->
           <button role="menuitem" disabled={!overrides[key]} onclick={() => onRecolor(team, null)}>
-            <span class="ink-swatch" style:background={resolveTeamColor(team)}></span> Use scouting app color
+            <span class="ink-swatch" style:background={resolveTeamColor(team, {}, autoLighten)}></span> Use scouting app color
           </button>
           <div class="ink-menu-divider" role="separator"></div>
         {/if}

@@ -24,6 +24,11 @@ describe("Team Ink", () => {
     expect(inkColor(teamInk("redOne"), { ...lineup, redOne: "11480" }, {})).toBe("#99b125");
   });
 
+  it("draws a Team Ink Stroke lightened when Auto-Lighten is on", () => {
+    expect(inkColor(teamInk("redOne"), lineup, {}, true)).toBe("#3b3bff");
+    expect(inkColor(teamInk("blueThree"), lineup, {}, true)).toBe("#ffffff");
+  });
+
   it("draws the Strokes of an empty Station in Neutral white", () => {
     expect(inkColor(teamInk("blueThree"), lineup, {})).toBe("#ffffff");
   });

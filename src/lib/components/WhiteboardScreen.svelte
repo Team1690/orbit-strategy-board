@@ -116,7 +116,7 @@
   });
 
   $effect(() => {
-    controller?.setTeamColorOverrides(boardConfig.current.teamColors);
+    controller?.setTeamColors(boardConfig.current.teamColors, boardConfig.current.autoLighten);
   });
 
   $effect(() => {
@@ -302,7 +302,7 @@
           </div>
 
           {#if lineup}
-            <InkPicker {lineup} ink={ui.ink} overrides={boardConfig.current.teamColors} hiddenTeams={ui.hiddenTeams} onPick={(ink) => controller?.setInk(ink)} onToggleHidden={(team) => controller?.toggleHiddenTeam(team)} onSavePath={(station) => (savePathFor = station)} {bench} onSwapBench={swapBench} onRecolor={recolorTeam} />
+            <InkPicker {lineup} ink={ui.ink} overrides={boardConfig.current.teamColors} autoLighten={boardConfig.current.autoLighten} hiddenTeams={ui.hiddenTeams} onPick={(ink) => controller?.setInk(ink)} onToggleHidden={(team) => controller?.toggleHiddenTeam(team)} onSavePath={(station) => (savePathFor = station)} {bench} onSwapBench={swapBench} onRecolor={recolorTeam} />
           {/if}
         {/if}
       </div>

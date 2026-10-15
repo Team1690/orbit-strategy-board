@@ -17,7 +17,7 @@
 
   const sections: SettingsSection[] = [
     { id: "checklist", title: "Checklist", description: "What every strategy meeting covers. Items can be ticked per Match; Headings group them.", component: ChecklistSection },
-    { id: "team-colors", title: "Team Colors", description: "Recolor a team on this device when its scouting app color is hard to see or clashes.", component: TeamColorsSection },
+    { id: "team-colors", title: "Team Colors", description: "Auto-Lighten lifts scouting app colors that are too dark for the board. Recolor a team on this device when its color still clashes.", component: TeamColorsSection },
     { id: "common-paths", title: "Common Paths", description: "Saved robot plans you can paste into any Match from the whiteboard's PATHS button.", component: CommonPathsSection },
     { id: "current-event", title: "Current Event", description: "Schedule Sync follows this event and adds every match with 1690, with each team in its schedule Station.", component: CurrentEventSection },
     { id: "files", title: "Files", description: "Move this tablet's setup and Matches to another tablet, or keep a copy.", component: FilesSection },
