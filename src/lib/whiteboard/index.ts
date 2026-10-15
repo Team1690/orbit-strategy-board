@@ -25,6 +25,8 @@ type Action =
 const slots: readonly Slot[] = ["redOne", "redTwo", "redThree", "blueOne", "blueTwo", "blueThree"];
 const VIEWS: Record<View, Point> = { full: [FIELD_WIDTH / 2, FIELD_HEIGHT / 2], red: [(FIELD_WIDTH * 3) / 4, FIELD_HEIGHT / 2], blue: [FIELD_WIDTH / 4, FIELD_HEIGHT / 2] };
 const fieldImageCache = new Map<string, HTMLImageElement>();
+const DOUBLE_TAP_MS = 400;
+const TAP_SLOP_PX = 10;
 
 function phaseFor(match: WhiteboardMatch, mode: BoardPhaseName): WhiteboardPhase { return match[mode]; }
 function lineupOf(match: WhiteboardMatch): Lineup { return { redOne: match.redOne, redTwo: match.redTwo, redThree: match.redThree, blueOne: match.blueOne, blueTwo: match.blueTwo, blueThree: match.blueThree }; }
@@ -58,7 +60,8 @@ export class WhiteboardController {
   private image: HTMLImageElement | null = null;
   private imageYear: number | undefined;
   private selected: { slot: Slot; robot: RobotPosition; offset: Point; rotating: boolean; before: Pick<RobotPosition, "x" | "y" | "r"> } | null = null;
-  private pointer: { id: number; last: Point; stroke: Stroke | null; erased: Extract<Action, { kind: "erase" }> } | null = null;
+  private pointer: { id: number; start: Point; last: Point; stroke: Stroke | null; erased: Extract<Action, { kind: "erase" }> } | null = null;
+  private lastRobotTap: { slot: Slot; at: number } | null = null;
   private undoHistory = new Map<BoardPhaseName, Action[]>();
   private redoHistory = new Map<BoardPhaseName, Action[]>();
   private resizeObserver: ResizeObserver | null = null;
@@ -201,7 +204,7 @@ export class WhiteboardController {
     const point = this.eventPoint(event); if (!point) return;
     this.refs.drawing.setPointerCapture(event.pointerId);
     const erased: Extract<Action, { kind: "erase" }> = { kind: "erase", strokes: [], checkboxes: [] };
-    this.pointer = { id: event.pointerId, last: point, stroke: null, erased };
+    this.pointer = { id: event.pointerId, start: point, last: point, stroke: null, erased };
     const selected = this.robotAt(point);
     if (this.selected && this.rotationHandleAt(point, this.selected)) {
       this.selected.rotating = true; this.selected.before = this.pose(this.selected.robot); return;
@@ -232,6 +235,7 @@ export class WhiteboardController {
       // usable on the next gesture. Clicking empty space still deselects it.
       this.selected = { slot, robot, offset: [0, 0], rotating: false, before: after };
       if (!samePose(before, after)) this.record({ kind: "transform", slot, before, after }, "transform");
+      if (event.type === "pointerup") this.tapRobot(slot, pointer, event.timeStamp);
       this.drawItems(); return;
     }
     if (pointer.stroke) {
@@ -348,6 +352,12 @@ export class WhiteboardController {
   private pose(robot: RobotPosition): Pick<RobotPosition, "x" | "y" | "r"> { return { x: robot.x, y: robot.y, r: robot.r }; }
   private robotAt(point: Point): { slot: Slot; robot: RobotPosition; offset: Point } | null { const phase = this.phase(); if (!phase || this.mode === "notes") return null; for (const slot of [...slots].reverse()) { const robot = phase[`${slot}Robot`]; if (pointInRotatedRect(point, [robot.x, robot.y], robot.w, robot.h, robot.r)) return { slot, robot, offset: [robot.x - point[0], robot.y - point[1]] }; } return null; }
   private rotationHandleAt(point: Point, selected: NonNullable<WhiteboardController["selected"]>): boolean { const sign = isBlue(selected.slot) ? -1 : 1; const handle: Point = [selected.robot.x + sign * selected.robot.w / 2 * Math.cos(selected.robot.r), selected.robot.y + sign * selected.robot.w / 2 * Math.sin(selected.robot.r)]; return Math.hypot(point[0] - handle[0], point[1] - handle[1]) < 35; }
+  private tapRobot(slot: Slot, pointer: NonNullable<WhiteboardController["pointer"]>, at: number): void {
+    const moved = Math.hypot(pointer.last[0] - pointer.start[0], pointer.last[1] - pointer.start[1]) * this.layout.scale >= TAP_SLOP_PX;
+    const double = !moved && this.lastRobotTap?.slot === slot && at - this.lastRobotTap.at < DOUBLE_TAP_MS;
+    this.lastRobotTap = moved || double ? null : { slot, at };
+    if (double && this.match?.[slot].trim()) this.setInk(teamInk(slot));
+  }
   private moveSelected(point: Point): void { if (!this.selected) return; const { robot, offset, rotating, slot } = this.selected; if (rotating) { robot.r = Math.atan2(point[1] - robot.y, point[0] - robot.x) + (isBlue(slot) ? Math.PI : 0); } else { robot.x = point[0] + offset[0]; robot.y = point[1] + offset[1]; } this.drawItems(); }
   private toggleCheckbox(point: Point): void { const phase = this.phase(); if (!phase) return; const index = phase.checkboxes.findIndex(([x, y]) => Math.abs(x - point[0]) <= 60 && Math.abs(y - point[1]) <= 60); if (index >= 0) { const before = phase.checkboxes[index][3]; phase.checkboxes[index][3] = !before; this.redrawDrawing(); this.record({ kind: "checkbox-toggle", index, before, after: !before }, "checkbox"); } else { const checkbox: CheckboxAnnotation = [point[0], point[1], NEUTRAL_INK, false]; phase.checkboxes.push(checkbox); this.redrawDrawing(); this.record({ kind: "checkbox-add", checkbox }, "checkbox"); } }
   private eraseSegment(start: Point, end: Point, erased: Extract<Action, { kind: "erase" }>): void { const phase = this.phase(); if (!phase) return; const radius = 10; let changed = false; const lineup = this.match ? lineupOf(this.match) : null; for (let index = phase.drawing.length - 1; index >= 0; index--) { const stroke = phase.drawing[index]; if (lineup && !isStrokeErasable(stroke[0], lineup, this.hiddenTeams)) continue; if (!segmentTouchesBounds(start, end, phase.drawingBBox[index] ?? strokeBounds(stroke), radius)) continue; const points = stroke.slice(1) as Point[]; const hit = points.length === 1 ? distanceToSegment(points[0], start, end) <= radius + 5 : points.slice(1).some((point, i) => segmentsIntersect(start, end, points[i], point, radius)); if (hit) { phase.drawing.splice(index, 1); phase.drawingBBox.splice(index, 1); erased.strokes.push({ index, stroke }); changed = true; } }
