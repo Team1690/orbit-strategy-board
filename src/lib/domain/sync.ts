@@ -1,11 +1,11 @@
 import type { MatchPacket } from "$lib/native/types";
 
-import { readExtras, toWhatIfMatch, withExtras, type BenchTeams, type SyncMarker } from "./extras";
+import { readExtras, withExtras, type BenchTeams, type SyncMarker } from "./extras";
 import type { Lineup } from "./ink";
 import { isObject } from "./json";
 import { newMatchPacket } from "./packets";
 import { packetLineup, reassignStations } from "./reassign";
-import { eventFieldYear, identityFromTbaKey, identityKey, parseTbaMatches, scheduledMatchName, scheduledTbaMatchKey, type EventSchedule, type QueueTimes, type ScheduleEntry, type ScheduleSource } from "./schedule";
+import { eventFieldYear, identityKey, scheduledMatchName, scheduledTbaMatchKey, type EventSchedule, type QueueTimes, type ScheduleEntry, type ScheduleSource } from "./schedule";
 import { ALLIANCE_STATIONS, OUR_TEAM, stationAlliance, type StationKey } from "./stations";
 
 // identity keys by event key
@@ -31,6 +31,10 @@ export interface SyncPlan {
   schedule: Record<string, ScheduleInfo>;
   // identity key of the earliest unplayed synced match on the board
   nextMatch: string | null;
+  // how many of our team's matches the schedule lists
+  ours: number;
+  // our matches left off the board because they were deleted
+  skipped: number;
 }
 
 function stationTeams(teams: readonly string[]): [string, string, string] {
@@ -100,7 +104,7 @@ function syncedMatch(entry: ScheduleEntry, id: string, source: ScheduleSource): 
 }
 
 export function planSync({ packets, schedule, dismissed = {}, newId }: SyncInput): SyncPlan {
-  const skipped = new Set(dismissed[schedule.eventKey] ?? []);
+  const dismissedKeys = new Set(dismissed[schedule.eventKey] ?? []);
   const board = new Map<string, MatchPacket>();
   for (const packet of packets) {
     const marker = readExtras(packet).sync;
@@ -118,6 +122,7 @@ export function planSync({ packets, schedule, dismissed = {}, newId }: SyncInput
   const info: Record<string, ScheduleInfo> = {};
   const onBoard = new Set(board.keys());
   const ours = new Set<string>();
+  let skipped = 0;
   for (const [key, { first, last }] of entries) {
     info[key] = { order: first.order, status: last.status, times: { ...last.times }, played: last.played };
     if (includesOurTeam(last)) ours.add(key);
@@ -127,14 +132,17 @@ export function planSync({ packets, schedule, dismissed = {}, newId }: SyncInput
       if (changed) update.push(changed);
       continue;
     }
-    if (skipped.has(key)) continue;
+    if (dismissedKeys.has(key)) {
+      skipped++;
+      continue;
+    }
     onBoard.add(key);
     add.push(syncedMatch(last, newId(), schedule.source));
   }
   const nextMatch = Object.entries(info)
     .filter(([key, { played }]) => !played && onBoard.has(key) && ours.has(key))
     .sort(([, a], [, b]) => a.order - b.order)[0]?.[0] ?? null;
-  return { add, update, schedule: info, nextMatch };
+  return { add, update, schedule: info, nextMatch, ours: ours.size, skipped };
 }
 
 const LEVEL_RANK: Record<string, number> = { practice: 0, qual: 1, playoff: 2, final: 3 };
@@ -244,36 +252,4 @@ export function swapBenchTeam(packet: MatchPacket, station: StationKey): MatchPa
   const lineup = packetLineup(packet);
   const displaced = lineup[station].trim();
   return withExtras(reassignStations(packet, { ...lineup, [station]: incoming }), { bench: { ...bench, [alliance]: displaced || undefined } });
-}
-
-function packetIdentityKey(packet: MatchPacket): string | null {
-  const marker = readExtras(packet).sync;
-  const identity = marker ?? (typeof packet[10] === "string" ? identityFromTbaKey(packet[10]) : null);
-  return identity ? identityKey(identity) : null;
-}
-
-export interface TbaImportInput {
-  packets: readonly MatchPacket[];
-  matches: unknown;
-  eventKey: string;
-  // null imports every match
-  team: string | null;
-  currentEventKey: string | null;
-  newId: () => string;
-}
-
-// matches for the current event come in as synced matches - the rest as what-if matches
-export function planTbaImport({ packets, matches, eventKey, team, currentEventKey, newId }: TbaImportInput): MatchPacket[] {
-  const schedule = parseTbaMatches(matches, eventKey);
-  if (!schedule) return [];
-  const onBoard = new Set(packets.map(packetIdentityKey).filter((key): key is string => key !== null));
-  const imported: MatchPacket[] = [];
-  for (const entry of schedule.entries) {
-    const key = identityKey(entry.identity);
-    if ((team && ![...entry.red, ...entry.blue].includes(team)) || onBoard.has(key)) continue;
-    onBoard.add(key);
-    const packet = syncedMatch(entry, newId(), schedule.source);
-    imported.push(eventKey === currentEventKey ? packet : toWhatIfMatch(packet));
-  }
-  return imported;
 }
