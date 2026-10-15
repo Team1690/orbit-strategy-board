@@ -49,9 +49,10 @@ jobs:
           rustup toolchain install
           rustup target add aarch64-linux-android
           # the tauri cli only reads NDK_HOME - set here because workflow-level env can't see ANDROID_HOME
-          ndk="$ANDROID_HOME/ndk/29.0.14206865"
+          ndk_version=29.0.14206865
+          ndk="$ANDROID_HOME/ndk/$ndk_version"
           if [[ ! -d "$ndk" ]]; then
-            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;29.0.14206865"
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk_version"
           fi
           echo "NDK_HOME=$ndk" >> "$GITHUB_ENV"
 
