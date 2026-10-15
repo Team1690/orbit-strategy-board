@@ -1,5 +1,5 @@
 <script lang="ts">
-  let { onNew, onTba, onImportQr, onImportFile, onClear, onSettings }: { onNew: () => void; onTba: () => void; onImportQr: () => void; onImportFile: () => void; onClear: () => void; onSettings: () => void } = $props();
+  let { onNew, onImportQr, onImportFile, onClear, onSettings }: { onNew: () => void; onImportQr: () => void; onImportFile: () => void; onClear: () => void; onSettings: () => void } = $props();
 </script>
 
 <div
@@ -19,10 +19,6 @@
   </div>
   <div id="home-toolbar-actions" class="flex shrink-0 items-center">
     <button id="home-toolbar-new-btn" class="home-toolbar-btn btn-secondary" onclick={onNew}>New</button>
-    <button id="home-toolbar-tba-btn" class="home-toolbar-btn btn-secondary" onclick={onTba}>
-      <span>TBA</span>
-      <img src="/tba.svg" alt="TBA" />
-    </button>
     <button id="home-toolbar-import-btn" class="home-toolbar-btn btn-secondary" onclick={onImportQr}>Import QR</button>
     <button id="home-toolbar-import-file-btn" class="home-toolbar-btn btn-secondary" onclick={onImportFile}>
       <span>Import file</span>

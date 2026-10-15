@@ -10,8 +10,8 @@
   import { scheduleSync } from "$lib/stores/sync.svelte";
   import { toast } from "$lib/stores/toast.svelte";
   import { native } from "$lib/native/api";
-  import { buildCommit, isNativeRuntime, newId, safeFilename, shareBoardFile, timeAgo } from "$lib/features";
-  import { encodeMatchFile, homeEventGroups, planTbaImport, toWhatIfMatch } from "$lib/domain";
+  import { buildCommit, isNativeRuntime, safeFilename, shareBoardFile, timeAgo } from "$lib/features";
+  import { encodeMatchFile, homeEventGroups, toWhatIfMatch } from "$lib/domain";
   import { queueBadge } from "$lib/features/queue";
   import { registerServiceWorker, requestPersistentStorage } from "$lib/features/offline";
   import AppLoading from "$lib/components/AppLoading.svelte";
@@ -24,14 +24,12 @@
   import QrImportModal from "$lib/components/QrImportModal.svelte";
   import SettingsScreen from "$lib/components/SettingsScreen.svelte";
   import SyncStatusLine from "$lib/components/SyncStatusLine.svelte";
-  import TbaImportModal from "$lib/components/TbaImportModal.svelte";
   import WhiteboardScreen from "$lib/components/WhiteboardScreen.svelte";
   import type { Match, MatchFormValues, MatchGroup } from "$lib/components/types";
   import type { MatchPacket, StrategyMatch } from "$lib/native/types";
 
   let createOpen = $state(false);
   let clearOpen = $state(false);
-  let tbaOpen = $state(false);
   let qrImportOpen = $state(false);
   let settingsOpen = $state(false);
   let editing = $state<Match | null>(null);
@@ -140,24 +138,6 @@
     }
   }
 
-  async function importTba(eventKey: string, teamNumber: string) {
-    try {
-      const matches = await native.tba.matchesAtEvent(eventKey);
-      const team = teamNumber.replace(/^frc/i, "") || null;
-      const packets = planTbaImport({ packets: app.packets, matches, eventKey, team, currentEventKey: scheduleSync.currentEvent?.eventKey ?? null, newId });
-      if (!packets.length) {
-        notice(matches.length ? "Those matches are already on the board." : "No matches were found for that event and team.");
-        return;
-      }
-      await app.importPackets(packets);
-      tbaOpen = false;
-      notice(`Imported ${packets.length} match${packets.length === 1 ? "" : "es"} from TBA.`);
-    } catch {
-      notice("TBA could not load those matches. Check the event key and API settings.");
-      throw new Error("TBA import failed.");
-    }
-  }
-
   async function saveAsFile(match: Match) {
     const source = app.matches.find((candidate) => candidate.id === match.id);
     if (!source) return;
@@ -190,7 +170,7 @@
 
 {#if app.screen === "home"}
   <div id="home-container" class="flex flex-col w-full h-full touch-none">
-    <HomeToolbar onNew={() => createOpen = true} onTba={() => tbaOpen = true} onImportQr={() => qrImportOpen = true} onImportFile={() => fileInput?.click()} onClear={() => clearOpen = true} onSettings={() => settingsOpen = true} />
+    <HomeToolbar onNew={() => createOpen = true} onImportQr={() => qrImportOpen = true} onImportFile={() => fileInput?.click()} onClear={() => clearOpen = true} onSettings={() => settingsOpen = true} />
     <MatchList
       {groups}
       onToggleGroup={(group) => (collapsedGroups = { ...collapsedGroups, [group.key]: !group.collapsed })}
@@ -247,7 +227,6 @@
   onClose={() => boardFiles.cancel()}
 />
 <ConfirmModal open={clearOpen} title="Clear All Data?" message="This will permanently delete all matches and data. This action cannot be undone." confirmLabel="Clear All" destructive onConfirm={async () => { await app.clearAll(); clearOpen = false; }} onClose={() => clearOpen = false} />
-<TbaImportModal open={tbaOpen} onImport={importTba} onClose={() => tbaOpen = false} />
 <QrImportModal open={qrImportOpen} onImport={importQr} onNotice={notice} onClose={() => qrImportOpen = false} />
 <QrExportModal open={qrMatch !== null} packet={qrMatch ? app.matches.find((match) => match.id === qrMatch?.id)?.packet ?? null : null} matchName={qrMatch?.matchName || "this match"} onNotice={notice} onClose={() => qrMatch = null} />
 <input bind:this={fileInput} id="home-import-file-input" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" onchange={(event) => boardFiles.openPicked(event.currentTarget)} />
