@@ -1,4 +1,5 @@
-/** Build-time commit stamp rendered in the home footer. */
+/** Build-time version and commit stamp rendered in the home footer. */
+export const buildVersion = __BUILD_VERSION__;
 export const buildCommit = __BUILD_COMMIT__;
 
 const INTERVALS: ReadonlyArray<readonly [unit: string, seconds: number]> = [

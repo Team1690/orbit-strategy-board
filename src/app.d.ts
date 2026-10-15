@@ -9,6 +9,7 @@ declare global {
   }
 
   /** Injected by `define` in vite.config.js. */
+  const __BUILD_VERSION__: string;
   const __BUILD_COMMIT__: {
     sha: string;
     fullSha: string;
