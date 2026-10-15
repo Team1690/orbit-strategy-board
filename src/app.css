@@ -396,10 +396,7 @@ body {
 
 @media (max-width: 375px) {
     #home-toolbar {
-        padding: 0.5rem;
-    }
-    #home-toolbar-logo {
-        font-size: 1rem !important;
+        padding-block: 0.5rem;
     }
 
     #whiteboard-toolbar {
@@ -723,84 +720,10 @@ body {
     }
 }
 
-@media (max-width: 834px) {
-    #home-toolbar {
-        gap: 0.5rem;
-        padding-left: 0.75rem !important;
-        padding-right: 0.75rem !important;
-    }
-    #home-toolbar-logo {
-        flex: 0 1 auto;
-        min-width: 0;
-        font-size: 1.15rem !important;
-        line-height: 1.1;
-    }
-    #home-toolbar > div:last-child {
-        flex: 1 1 auto;
-        min-width: 0;
-        justify-content: flex-end;
-        gap: 0.35rem !important;
-    }
-    #home-toolbar-new-btn,
-    #home-toolbar-tba-btn,
-    #home-toolbar-import-btn,
-    #home-toolbar-import-file-btn,
-    #home-toolbar-clear-btn,
-    #home-toolbar-settings-btn {
-        min-width: 0;
-        padding: 0.45rem 0.65rem !important;
-        font-size: 0.95rem !important;
-        white-space: nowrap;
-    }
-    #home-toolbar-tba-btn {
-        gap: 0.4rem !important;
-    }
-    #home-toolbar-tba-btn img {
-        height: 1.25rem !important;
-    }
-}
-
-@media (max-width: 640px) {
-    #home-toolbar {
-        gap: 0.5rem;
-    }
-    #home-toolbar > div:last-child {
-        gap: 0.3rem !important;
-    }
-    #home-toolbar-new-btn,
-    #home-toolbar-tba-btn,
-    #home-toolbar-import-btn,
-    #home-toolbar-import-file-btn,
-    #home-toolbar-clear-btn,
-    #home-toolbar-settings-btn {
-        min-height: 2.5rem !important;
-        padding: 0.5rem 0.75rem !important;
-    }
-}
-
-@media (max-width: 480px) {
-    #home-toolbar-logo {
-        font-size: 1.25rem !important;
-    }
-    #home-toolbar > div:last-child {
-        gap: 0.25rem !important;
-    }
-    #home-toolbar-new-btn,
-    #home-toolbar-tba-btn,
-    #home-toolbar-import-btn,
-    #home-toolbar-import-file-btn,
-    #home-toolbar-clear-btn,
-    #home-toolbar-settings-btn {
-        min-height: 2.25rem !important;
-        padding: 0.4rem 0.6rem !important;
-        font-size: 0.875rem !important;
-    }
-}
-
 @media (max-width: 1024px) and (orientation: landscape) {
     #home-toolbar {
         height: 3.5rem !important;
-        padding: 0 1rem;
+        padding-top: 0;
     }
 
     #home-bottom-bar {
@@ -813,14 +736,6 @@ body {
 }
 
 @media (max-width: 834px) and (orientation: landscape) {
-    #home-toolbar-new-btn,
-    #home-toolbar-tba-btn,
-    #home-toolbar-import-btn,
-    #home-toolbar-import-file-btn,
-    #home-toolbar-clear-btn,
-    #home-toolbar-settings-btn {
-        height: 2.5rem !important;
-    }
     #tba-import-container > div,
     #create-match-container > div,
     #edit-match-container > div,
@@ -1424,7 +1339,7 @@ a:active,
 
 @media (min-width: 768px) and (max-width: 1024px) {
     #home-toolbar {
-        padding: 1rem 1.5rem;
+        padding-block: 1rem;
     }
 
     #home-match-list {
@@ -1560,8 +1475,38 @@ a:active,
     }
 }
 
+/* the toolbar scales linearly from a landscape phone (~844px) up to full size at ~1380px
+   so every label always fits without stepping at breakpoints */
+#home-toolbar {
+    padding-inline: clamp(0.75rem, 9vw - 3.75rem, 4rem);
+}
+
 #home-toolbar-logo {
+    font-size: clamp(1rem, 0.7rem + 0.93vw, 1.5rem);
     transition: all 0.3s ease-in-out;
+}
+
+#home-toolbar-actions {
+    gap: clamp(0.35rem, 1.5vw - 0.3rem, 1rem);
+    font-size: clamp(0.875rem, 0.6rem + 0.75vw, 1.25rem);
+}
+
+.home-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    height: 2.8em;
+    padding: 0 clamp(0.4rem, 4.85vw - 1.7rem, 2.5rem);
+    white-space: nowrap;
+}
+
+.home-toolbar-btn img {
+    height: 1.8em;
+}
+
+#home-toolbar-settings-btn {
+    padding: 0 clamp(0.4rem, 2.6vw - 0.75rem, 1.5rem);
 }
 
 /* a filter on the parent keeps the glow from being clipped by the truncated title */

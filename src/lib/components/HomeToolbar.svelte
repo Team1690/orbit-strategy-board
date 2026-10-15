@@ -4,11 +4,11 @@
 
 <div
   id="home-toolbar"
-  class="flex items-center justify-between gap-3 w-full h-24 bg-[#111111] border-b border-[#1e1e1e] px-4 sm:px-6 md:px-10 lg:px-16 pt-[env(safe-area-inset-top)]"
+  class="flex items-center justify-between gap-3 w-full h-24 bg-[#111111] border-b border-[#1e1e1e] pt-[env(safe-area-inset-top)]"
 >
   <div
     id="home-toolbar-logo"
-    class="flex items-center gap-[0.5em] min-w-0 text-lg sm:text-xl md:text-2xl font-bold text-[#e8e8e8] select-none cursor-pointer tracking-tight"
+    class="flex items-center gap-[0.5em] min-w-0 font-bold text-[#e8e8e8] select-none cursor-pointer tracking-tight"
     onclick={() => location.reload()}
     role="button"
     tabindex="0"
@@ -17,52 +17,21 @@
     <img src="/logo.svg" alt="" class="h-[2em] w-auto shrink-0" draggable="false" />
     <span class="truncate">Orbit Strategy Board</span>
   </div>
-  <!-- Paddings step down with the viewport: at full size the six buttons plus the
-       logo need ~1230px, so anything narrower than `lg` has to compact or the row
-       overflows the bar. -->
-  <div class="flex shrink-0 gap-2 sm:gap-2.5 md:gap-3 lg:gap-4 items-center">
-    <button
-      id="home-toolbar-new-btn"
-      class="flex items-center justify-center px-3 sm:px-4 md:px-6 lg:px-10 h-11 md:h-12 lg:h-14 btn-secondary text-sm sm:text-base md:text-lg lg:text-xl"
-      onclick={onNew}
-    >
-      New
-    </button>
-    <button
-      id="home-toolbar-tba-btn"
-      class="flex items-center justify-center gap-1.5 md:gap-2 lg:gap-2.5 px-3 sm:px-4 md:px-6 lg:px-10 h-11 md:h-12 lg:h-14 btn-secondary text-sm sm:text-base md:text-lg lg:text-xl"
-      onclick={onTba}
-    >
+  <div id="home-toolbar-actions" class="flex shrink-0 items-center">
+    <button id="home-toolbar-new-btn" class="home-toolbar-btn btn-secondary" onclick={onNew}>New</button>
+    <button id="home-toolbar-tba-btn" class="home-toolbar-btn btn-secondary" onclick={onTba}>
       <span>TBA</span>
-      <img src="/tba.svg" alt="TBA" class="h-6 sm:h-7 md:h-9 w-auto" />
+      <img src="/tba.svg" alt="TBA" />
     </button>
-    <button
-      id="home-toolbar-import-btn"
-      class="flex items-center justify-center px-3 sm:px-4 md:px-6 lg:px-10 h-11 md:h-12 lg:h-14 btn-secondary text-sm sm:text-base md:text-lg lg:text-xl"
-      onclick={onImportQr}
-    >
-      <span class="hidden sm:inline">Import QR</span>
-      <span class="sm:hidden">Import</span>
-    </button>
-    <button
-      id="home-toolbar-import-file-btn"
-      class="flex items-center justify-center gap-1.5 md:gap-2 lg:gap-2.5 px-3 sm:px-4 md:px-6 lg:px-10 h-11 md:h-12 lg:h-14 btn-secondary text-sm sm:text-base md:text-lg lg:text-xl"
-      onclick={onImportFile}
-    >
-      <span class="hidden sm:inline">Import file</span>
-      <span class="sm:hidden">File</span>
+    <button id="home-toolbar-import-btn" class="home-toolbar-btn btn-secondary" onclick={onImportQr}>Import QR</button>
+    <button id="home-toolbar-import-file-btn" class="home-toolbar-btn btn-secondary" onclick={onImportFile}>
+      <span>Import file</span>
       <i class="fas fa-file-import"></i>
     </button>
-    <button
-      id="home-toolbar-clear-btn"
-      class="flex items-center justify-center px-3 sm:px-4 md:px-6 lg:px-10 h-11 md:h-12 lg:h-14 btn-danger text-sm sm:text-base md:text-lg lg:text-xl"
-      onclick={onClear}
-    >
-      Clear
-    </button>
+    <button id="home-toolbar-clear-btn" class="home-toolbar-btn btn-danger" onclick={onClear}>Clear</button>
     <button
       id="home-toolbar-settings-btn"
-      class="flex items-center justify-center px-3 sm:px-4 md:px-5 lg:px-6 h-11 md:h-12 lg:h-14 btn-secondary text-sm sm:text-base md:text-lg lg:text-xl"
+      class="home-toolbar-btn btn-secondary"
       onclick={onSettings}
       aria-label="Settings"
       title="Settings"
