@@ -8,13 +8,14 @@
 >
   <div
     id="home-toolbar-logo"
-    class="min-w-0 truncate text-lg sm:text-xl md:text-2xl font-bold text-[#e8e8e8] select-none cursor-pointer tracking-tight"
+    class="flex items-center gap-[0.5em] min-w-0 text-lg sm:text-xl md:text-2xl font-bold text-[#e8e8e8] select-none cursor-pointer tracking-tight"
     onclick={() => location.reload()}
     role="button"
     tabindex="0"
     onkeydown={(event) => { if (event.key === "Enter" || event.key === " ") location.reload(); }}
   >
-    Orbit Strategy Board
+    <img src="/logo.svg" alt="" class="h-[2em] w-auto shrink-0" draggable="false" />
+    <span class="truncate">Orbit Strategy Board</span>
   </div>
   <!-- Paddings step down with the viewport: at full size the six buttons plus the
        logo need ~1230px, so anything narrower than `lg` has to compact or the row

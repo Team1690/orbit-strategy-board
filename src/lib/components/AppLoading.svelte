@@ -1,5 +1,6 @@
 <div id="app-loading" role="status" aria-live="polite">
   <div class="loading-card">
+    <img src="/logo.svg" alt="" class="loading-logo" draggable="false" />
     <div class="loading-spinner" aria-hidden="true"></div>
     <div class="loading-title">Orbit Strategy Board</div>
     <div id="app-loading-message" class="loading-subtitle">Loading the playbook...</div>

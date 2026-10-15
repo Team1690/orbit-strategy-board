@@ -157,6 +157,12 @@ body {
     color: #999;
 }
 
+#app-loading .loading-logo {
+    height: clamp(72px, 12vh, 112px);
+    width: auto;
+    margin-bottom: 4px;
+}
+
 #app-loading .loading-spinner {
     width: 48px;
     height: 48px;
@@ -1558,12 +1564,9 @@ a:active,
     transition: all 0.3s ease-in-out;
 }
 
+/* a filter on the parent keeps the glow from being clipped by the truncated title */
 #home-toolbar-logo:hover {
-    text-shadow:
-        0 0 10px rgba(255, 255, 255, 0.8),
-        0 0 20px rgba(255, 255, 255, 0.6),
-        0 0 30px rgba(255, 255, 255, 0.4),
-        0 0 40px rgba(255, 255, 255, 0.2);
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.3));
 }
 
 #tba-import-container > div,
