@@ -2,7 +2,6 @@ import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
   PdfDocumentPlan, QrProgress, SourceResponse, StatboticsMatch, StatboticsTeamYear, StatboticsYear, TbaEvent,
-  TbaMatch, TbaSimpleEvent, TbaSimpleMatch,
 } from "./types";
 import { fieldLayout } from "$lib/domain/field-layout";
 import { newMatchPacket } from "$lib/domain/packets";
@@ -197,36 +196,6 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
   return response.kind === "missing-key" ? { kind: "rejected-key" } : response;
 }
 
-function simpleEvents(events: TbaEvent[]): TbaSimpleEvent[] {
-  const formatDate = (start: string, end: string) => {
-    const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", timeZone: "UTC" };
-    const first = new Date(`${start}T00:00:00Z`);
-    const last = new Date(`${end}T00:00:00Z`);
-    if (!Number.isFinite(first.valueOf()) || !Number.isFinite(last.valueOf())) return "";
-    return `${first.toLocaleDateString("en-US", options)} - ${last.toLocaleDateString("en-US", options)}`;
-  };
-  return events.filter((event) => event.year >= 2025).map((event) => ({
-    key: event.key, name: event.name,
-    location: [event.city, event.state_prov ?? event.country].filter(Boolean).join(", "),
-    date_range: formatDate(event.start_date, event.end_date), year: event.year,
-  })).sort((a, b) => b.year - a.year || b.date_range.localeCompare(a.date_range));
-}
-
-function simpleMatches(matches: TbaMatch[]): TbaSimpleMatch[] {
-  const levelOrder: Record<string, number> = { qm: 1, ef: 2, qf: 3, sf: 4, f: 5 };
-  const label = (match: TbaMatch) => {
-    if (match.comp_level === "qm") return `Quals ${match.match_number}`;
-    const names: Record<string, string> = { ef: "Eighths", qf: "Quarters", sf: "Semis", f: "Finals" };
-    return `${names[match.comp_level] ?? match.comp_level.toUpperCase()} ${match.set_number}-${match.match_number}`;
-  };
-  return [...matches].sort((a, b) => (levelOrder[a.comp_level] ?? 99) - (levelOrder[b.comp_level] ?? 99) || a.set_number - b.set_number || a.match_number - b.match_number).map((match) => ({
-    match_name: label(match),
-    red_teams: match.alliances.red.team_keys.map((team) => team.replace(/^frc/, "")),
-    blue_teams: match.alliances.blue.team_keys.map((team) => team.replace(/^frc/, "")),
-    match_key: match.key,
-  }));
-}
-
 async function statboticsFetch<T>(endpoint: string): Promise<T> {
   if (!endpoint.startsWith("/") || endpoint.includes("..") || endpoint.includes("?") || endpoint.includes("#")) throw new Error("Invalid Statbotics endpoint");
   const cacheKey = `statbotics_${endpoint.replace(/^\/match\//, "")}`;
@@ -340,14 +309,8 @@ export async function browserInvoke<TResult>(command: string, args: Record<strin
     case "nexus_event_status": result = await nexusRequest(`/event/${encodeURIComponent(String(args.eventKey))}`, typeof args.etag === "string" ? args.etag : null); break;
     case "tba_set_api_key": await storageSet("tbaApiKey", String(args.apiKey)); break;
     case "tba_has_api_key": result = Boolean((await storageGet("tbaApiKey")) || __TBA_API_KEY__); break;
-    case "tba_events": result = await tbaRequest<TbaEvent[]>(`/events/${args.year}`); break;
-    case "tba_matches_at_event": result = await tbaRequest<TbaMatch[]>(`/event/${encodeURIComponent(String(args.eventKey))}/matches`); break;
-    case "tba_team_matches": result = await tbaRequest<TbaMatch[]>(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/event/${encodeURIComponent(String(args.eventKey))}/matches`); break;
     case "tba_team_matches_status": result = await tbaSourceRequest(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/event/${encodeURIComponent(String(args.eventKey))}/matches`, typeof args.etag === "string" ? args.etag : null); break;
     case "tba_team_events": result = await tbaRequest<TbaEvent[]>(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/events/${args.year}`); break;
-    case "tba_teams_at_event": result = (await tbaRequest<string[]>(`/event/${encodeURIComponent(String(args.eventKey))}/teams/keys`)).map((team) => team.replace(/^frc/, "")); break;
-    case "tba_simple_events": result = simpleEvents(args.events as TbaEvent[]); break;
-    case "tba_simple_matches": result = simpleMatches(args.matches as TbaMatch[]); break;
     case "statbotics_fetch": result = await statboticsFetch(String(args.endpoint)); break;
     case "statbotics_match": result = await statboticsFetch<StatboticsMatch>(`/match/${encodeURIComponent(String(args.matchKey))}`); break;
     case "statbotics_year": result = await statboticsFetch<StatboticsYear>(`/year/${args.year}`); break;

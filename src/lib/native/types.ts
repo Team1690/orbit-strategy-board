@@ -65,14 +65,6 @@ export interface CreateMatchInput {
   tbaYear?: number;
 }
 
-export interface TbaAlliance { team_keys: string[]; }
-export interface TbaMatch {
-  key: string;
-  comp_level: string;
-  set_number: number;
-  match_number: number;
-  alliances: { red: TbaAlliance; blue: TbaAlliance };
-}
 export interface TbaEvent {
   key: string;
   name: string;
@@ -84,19 +76,6 @@ export interface TbaEvent {
   city: string | null;
   state_prov: string | null;
   country: string | null;
-}
-export interface TbaSimpleEvent {
-  key: string;
-  name: string;
-  location: string;
-  date_range: string;
-  year: number;
-}
-export interface TbaSimpleMatch {
-  match_name: string;
-  red_teams: string[];
-  blue_teams: string[];
-  match_key: string;
 }
 
 // failures are results too so sync can say exactly what went wrong

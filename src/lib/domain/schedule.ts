@@ -58,17 +58,6 @@ export function scheduledTbaMatchKey({ eventKey, level, number }: ScheduleIdenti
   return null;
 }
 
-// tba keys look like 2026isde1_qm13 or 2026isde1_sf7m1 or 2026isde1_f1m2
-export function identityFromTbaKey(key: string): ScheduleIdentity | null {
-  const quals = /^(\w+)_qm(\d+)$/.exec(key);
-  if (quals) return { eventKey: quals[1], level: "qual", number: Number(quals[2]) };
-  const playoff = /^(\w+)_(sf|f)(\d+)m(\d+)$/.exec(key);
-  if (!playoff) return null;
-  return playoff[2] === "sf"
-    ? { eventKey: playoff[1], level: "playoff", number: Number(playoff[3]) }
-    : { eventKey: playoff[1], level: "final", number: Number(playoff[4]) };
-}
-
 export function eventFieldYear(eventKey: string): number | undefined {
   const year = /^(\d{4})/.exec(eventKey)?.[1];
   return year ? Number(year) : undefined;
@@ -143,6 +132,7 @@ function tbaAlliance(value: unknown): { teams: string[] | null; score: number } 
 }
 
 // tba has no queue status - a match counts as played once it has a result
+// an empty list is a real answer - the event exists but has no matches for the team asked about
 export function parseTbaMatches(json: unknown, eventKey: string): EventSchedule | null {
   if (!Array.isArray(json)) return null;
   const matches = json
@@ -167,5 +157,5 @@ export function parseTbaMatches(json: unknown, eventKey: string): EventSchedule 
       replay: parsed.replay,
     });
   });
-  return entries.length ? { eventKey, source: "tba", entries } : null;
+  return { eventKey, source: "tba", entries };
 }

@@ -226,7 +226,7 @@
   onConfirm={() => void confirmReplacingFile()}
   onClose={() => boardFiles.cancel()}
 />
-<ConfirmModal open={clearOpen} title="Clear All Data?" message="This will permanently delete all matches and data. This action cannot be undone." confirmLabel="Clear All" destructive onConfirm={async () => { await app.clearAll(); clearOpen = false; }} onClose={() => clearOpen = false} />
+<ConfirmModal open={clearOpen} title="Clear All Data?" message="This will permanently delete all matches and data. This action cannot be undone." confirmLabel="Clear All" destructive onConfirm={async () => { await app.clearAll(); await scheduleSync.forgetReads(); clearOpen = false; }} onClose={() => clearOpen = false} />
 <QrImportModal open={qrImportOpen} onImport={importQr} onNotice={notice} onClose={() => qrImportOpen = false} />
 <QrExportModal open={qrMatch !== null} packet={qrMatch ? app.matches.find((match) => match.id === qrMatch?.id)?.packet ?? null : null} matchName={qrMatch?.matchName || "this match"} onNotice={notice} onClose={() => qrMatch = null} />
 <input bind:this={fileInput} id="home-import-file-input" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" onchange={(event) => boardFiles.openPicked(event.currentTarget)} />

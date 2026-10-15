@@ -4,18 +4,21 @@
 
   let draft = $state(scheduleSync.manualEventKey ?? "");
   let error = $state("");
+  let checking = $state(false);
   const status = $derived(scheduleSync.status);
   const event = $derived(scheduleSync.currentEvent);
 
   async function save(event: SubmitEvent) {
     event.preventDefault();
+    checking = true;
     try {
-      await scheduleSync.setManualEventKey(draft);
+      await scheduleSync.useEvent(draft);
       draft = scheduleSync.manualEventKey ?? "";
       error = "";
-      if (scheduleSync.manualEventKey) void scheduleSync.syncNow();
     } catch (reason) {
       error = reason instanceof Error ? reason.message : "Could not save the event key.";
+    } finally {
+      checking = false;
     }
   }
 
@@ -23,7 +26,7 @@
     await scheduleSync.setManualEventKey(null);
     draft = "";
     error = "";
-    void scheduleSync.syncNow();
+    void scheduleSync.syncNow(true);
   }
 </script>
 
@@ -47,7 +50,7 @@
       class="w-64 p-3 text-base text-center text-[#e8e8e8] rounded-[6px] bg-[#0d0d0d] border border-[#2a2a2a] outline-0 font-mono"
       bind:value={draft}
     />
-    <button id="current-event-save-btn" type="submit" class="px-5 py-3 btn-secondary">Use this event</button>
+    <button id="current-event-save-btn" type="submit" class="px-5 py-3 btn-secondary disabled:opacity-40" disabled={checking}>Use this event</button>
     {#if scheduleSync.manualEventKey}
       <button id="current-event-clear-btn" type="button" class="px-5 py-3 btn-danger" onclick={clear}>Clear</button>
     {/if}
@@ -59,7 +62,7 @@
       id="current-event-sync-btn"
       class="flex items-center gap-2 px-5 py-3 btn-secondary disabled:opacity-40"
       disabled={status.state === "syncing"}
-      onclick={() => void scheduleSync.syncNow()}
+      onclick={() => void scheduleSync.syncNow(true)}
     >
       <i class="fas fa-rotate" class:fa-spin={status.state === "syncing"}></i>
       Sync now

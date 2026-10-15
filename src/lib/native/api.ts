@@ -6,7 +6,6 @@ import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
   PdfDocumentPlan, QrProgress, SourceResponse, StatboticsMatch, StatboticsTeamYear, StatboticsYear, TbaEvent,
-  TbaMatch, TbaSimpleEvent, TbaSimpleMatch,
 } from "./types";
 
 export class NativeCommandError extends Error {
@@ -35,6 +34,16 @@ async function call<TResult>(command: string, args?: InvokeArgs): Promise<TResul
   }
 }
 
+// schedule reads always go through the browser implementation - tauri has no commands for them
+// both sources allow cross-origin requests and their keys are compiled into the bundle anyway
+async function sourceCall(command: string, args: Record<string, unknown>): Promise<SourceResponse> {
+  try {
+    return await browserInvoke<SourceResponse>(command, args);
+  } catch (error) {
+    throw new NativeCommandError(command, error);
+  }
+}
+
 /**
  * Native service surface. Commands that move packets use one coarse payload
  * rather than a sequence of per-field IPC calls.
@@ -51,7 +60,7 @@ export const native = {
   model: {
     loadPackets: () => call<MatchPacket[]>("model_load_packets"),
     addPacket: (packet: MatchPacket) => call<string>("model_add_packet", { packet }),
-    /** Atomic import path for TBA, QR, and file packets. */
+    /** Atomic import path for Schedule Sync, QR, and file packets. */
     addPackets: (packets: MatchPacket[]) => call<string[]>("model_add_packets", { packets }),
     /** Atomic normalized replacement for a completed form or canvas commit. */
     replacePacket: (packet: MatchPacket) => call<string>("model_replace_packet", { packet }),
@@ -75,18 +84,12 @@ export const native = {
   tba: {
     setApiKey: (apiKey: string) => call<void>("tba_set_api_key", { apiKey }),
     hasApiKey: () => call<boolean>("tba_has_api_key"),
-    events: (year: number) => call<TbaEvent[]>("tba_events", { year }),
-    matchesAtEvent: (eventKey: string) => call<TbaMatch[]>("tba_matches_at_event", { eventKey }),
-    teamMatches: (teamKey: string, eventKey: string) => call<TbaMatch[]>("tba_team_matches", { teamKey, eventKey }),
-    teamMatchesStatus: (teamKey: string, eventKey: string, etag?: string | null) => call<SourceResponse>("tba_team_matches_status", { teamKey, eventKey, etag: etag ?? null }),
+    teamMatchesStatus: (teamKey: string, eventKey: string, etag?: string | null) => sourceCall("tba_team_matches_status", { teamKey, eventKey, etag: etag ?? null }),
     teamEvents: (teamKey: string, year: number) => call<TbaEvent[]>("tba_team_events", { teamKey, year }),
-    teamsAtEvent: (eventKey: string) => call<string[]>("tba_teams_at_event", { eventKey }),
-    simpleEvents: (events: TbaEvent[]) => call<TbaSimpleEvent[]>("tba_simple_events", { events }),
-    simpleMatches: (matches: TbaMatch[]) => call<TbaSimpleMatch[]>("tba_simple_matches", { matches }),
   },
   nexus: {
-    events: (etag?: string | null) => call<SourceResponse>("nexus_events", { etag: etag ?? null }),
-    eventStatus: (eventKey: string, etag?: string | null) => call<SourceResponse>("nexus_event_status", { eventKey, etag: etag ?? null }),
+    events: (etag?: string | null) => sourceCall("nexus_events", { etag: etag ?? null }),
+    eventStatus: (eventKey: string, etag?: string | null) => sourceCall("nexus_event_status", { eventKey, etag: etag ?? null }),
   },
   statbotics: {
     cached: (matchKey: string) => call<JsonValue | null>("statbotics_cached", { matchKey }),

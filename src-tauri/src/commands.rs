@@ -174,35 +174,6 @@ pub fn tba_has_api_key(state: State<'_, RuntimeState>) -> CommandResult<bool> {
     Ok(tba_service(&state)?.has_api_key())
 }
 #[tauri::command]
-pub async fn tba_events(
-    state: State<'_, RuntimeState>,
-    year: i32,
-) -> CommandResult<Vec<tba::TbaEvent>> {
-    tba_json(&state, format!("/events/{year}")).await
-}
-#[tauri::command]
-pub async fn tba_matches_at_event(
-    state: State<'_, RuntimeState>,
-    event_key: String,
-) -> CommandResult<Vec<tba::TbaMatch>> {
-    tba_json(&state, format!("/event/{event_key}/matches")).await
-}
-#[tauri::command]
-pub async fn tba_team_matches(
-    state: State<'_, RuntimeState>,
-    team_key: String,
-    event_key: String,
-) -> CommandResult<Vec<tba::TbaMatch>> {
-    tba_json(
-        &state,
-        format!(
-            "/team/{}/event/{event_key}/matches",
-            tba::normalize_team_key(&team_key)
-        ),
-    )
-    .await
-}
-#[tauri::command]
 pub async fn tba_team_events(
     state: State<'_, RuntimeState>,
     team_key: String,
@@ -213,26 +184,6 @@ pub async fn tba_team_events(
         format!("/team/{}/events/{year}", tba::normalize_team_key(&team_key)),
     )
     .await
-}
-#[tauri::command]
-pub async fn tba_teams_at_event(
-    state: State<'_, RuntimeState>,
-    event_key: String,
-) -> CommandResult<Vec<String>> {
-    match tba_json(&state, format!("/event/{event_key}/teams/keys")).await {
-        Ok(teams) => Ok(teams),
-        Err(_) => Ok(tba::teams_from_matches(
-            &tba_json::<Vec<tba::TbaMatch>>(&state, format!("/event/{event_key}/matches")).await?,
-        )),
-    }
-}
-#[tauri::command]
-pub fn tba_simple_events(events: Vec<tba::TbaEvent>) -> Vec<tba::TbaSimpleEvent> {
-    tba::filter_and_sort_events(&tba::parse_events_to_simple(&events))
-}
-#[tauri::command]
-pub fn tba_simple_matches(matches: Vec<tba::TbaMatch>) -> Vec<tba::TbaSimpleMatch> {
-    tba::parse_matches_to_simple(&matches)
 }
 
 fn valid_endpoint(endpoint: &str) -> bool {

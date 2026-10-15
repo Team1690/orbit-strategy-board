@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { packetLineup, parseNexusEvent, parseTbaMatches, planSync, planTbaImport, readExtras, reassignStations, type EventSchedule } from "$lib/domain";
+import { dismissMatches, packetLineup, parseNexusEvent, parseTbaMatches, planSync, readExtras, reassignStations, type DismissedMatches, type EventSchedule } from "$lib/domain";
 import type { MatchPacket } from "$lib/native/types";
 
 import isde1Nexus from "./fixtures/nexus-2026isde1.json";
@@ -10,7 +10,7 @@ let ids = 0;
 const newId = () => `synced-${++ids}`;
 const fromNexus = () => parseNexusEvent(isde1Nexus)!;
 const fromTba = (matches: unknown = isde1Tba) => parseTbaMatches(matches, "2026isde1")!;
-const sync = (schedule: EventSchedule, packets: readonly MatchPacket[] = []) => planSync({ packets, schedule, newId });
+const sync = (schedule: EventSchedule, packets: readonly MatchPacket[] = [], dismissed: DismissedMatches = {}) => planSync({ packets, schedule, dismissed, newId });
 const names = (packets: readonly MatchPacket[]) => packets.map((packet) => packet[0]);
 // every recorded match is unplayed and the event also has a match without 1690 that comes first
 const allMatchesWithUs = [
@@ -53,10 +53,12 @@ describe("Schedule Sync from TBA", () => {
     expect(quals2.slice(4, 7)).toEqual(["1690", "7039", "254"]);
   });
 
-  it("only makes one of Our Team's matches the Next Match, even when an import added other matches at the event", () => {
-    const everything = planTbaImport({ packets: [], matches: allMatchesWithUs, eventKey: "2026isde1", team: null, currentEventKey: "2026isde1", newId });
+  it("only makes one of Our Team's matches the Next Match, even when the board still has a match we were moved out of", () => {
+    const usInQuals1 = structuredClone(allMatchesWithUs);
+    usInQuals1[0].alliances.red.team_keys = ["frc1690", "frc10935", "frc6738"];
+    const board = sync(fromTba(usInQuals1)).add;
 
-    const plan = sync(fromTba(allMatchesWithUs), everything);
+    const plan = sync(fromTba(allMatchesWithUs), board);
 
     expect(plan.nextMatch).toBe("2026isde1:qual:2");
   });
@@ -94,25 +96,27 @@ describe("Schedule Sync from TBA", () => {
   });
 });
 
-describe("The manual TBA import", () => {
-  const importFor = (packets: readonly MatchPacket[], currentEventKey: string | null) =>
-    planTbaImport({ packets, matches: isde1Tba, eventKey: "2026isde1", team: "1690", currentEventKey, newId });
-
-  it("skips matches already on the board, whether synced or imported before", () => {
-    const board = sync(fromNexus()).add.filter((packet) => packet[0] !== "Quals 13");
-
-    const imported = importFor(board, null);
-
-    expect(names(imported)).toEqual(["Quals 13"]);
-    expect(importFor([...board, ...imported], null)).toEqual([]);
+describe("What a sync found for Our Team", () => {
+  it("counts Our Team's matches on the schedule", () => {
+    expect(sync(fromTba()).ours).toBe(17);
+    expect(sync(fromNexus()).ours).toBe(20);
   });
 
-  it("makes imports for the Current Event Synced Matches that sync then follows, and What-if Matches for other events", () => {
-    const current = importFor([], "2026isde1");
-    const elsewhere = importFor([], "2026iscmp");
+  it("reads an empty TBA answer as a schedule with none of Our Team's matches", () => {
+    const plan = sync(fromTba([]));
 
-    expect(current.every((packet) => readExtras(packet).sync?.eventKey === "2026isde1")).toBe(true);
-    expect(elsewhere.every((packet) => readExtras(packet).sync === undefined && packet[10]?.startsWith("2026isde1_"))).toBe(true);
-    expect(names(sync(fromNexus(), current).add)).toEqual(["Practice 3", "Practice 9", "Final 3"]);
+    expect(plan.add).toEqual([]);
+    expect(plan.ours).toBe(0);
+    expect(parseTbaMatches({ Error: "not a list" }, "2026isde1")).toBeNull();
+  });
+
+  it("counts the deleted matches it left off the board", () => {
+    const board = sync(fromTba()).add;
+    const deleted = board.filter((packet) => packet[0] === "Quals 2" || packet[0] === "Final 1");
+
+    const plan = sync(fromTba(), [], dismissMatches({}, deleted));
+
+    expect(plan.add).toHaveLength(15);
+    expect(plan.skipped).toBe(2);
   });
 });
