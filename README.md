@@ -35,6 +35,10 @@ The generated projects are written under `src-tauri/gen/android` and
 `src-tauri/gen/apple`. Android builds require the Android SDK/NDK; iOS builds
 require macOS, Xcode, CocoaPods, and Apple signing for a distributable IPA.
 
+## Releasing
+
+New versions reach the tablet through GitHub Releases and Obtainium. [docs/releasing.md](docs/releasing.md) covers cutting a release, the release key and setting up a tablet.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). The original Strategy Board is by Pranav Gundu.
