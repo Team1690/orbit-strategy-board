@@ -27,7 +27,7 @@ The tablet gets new versions of the board through [Obtainium](https://github.com
 
    Never use `git push --tags` or `--follow-tags`. Your clone holds upstream's `v2026.*` tags, and their commits carry upstream's own release workflow, so pushing them would start release runs here with our secrets. GitHub also starts no workflow at all when more than three tags arrive in one push.
 
-4. Watch the run under Actions, Release (or `gh run watch`). A build takes roughly 10 to 25 minutes.
+4. Watch the run under Actions, Release (or `gh run watch`). A run takes about 10 minutes.
 
 5. The release shows up on the repo's Releases page with exactly one file, `orbit-strategy-board-v26.8.0.apk`, and notes made from the merged PR titles. The tablet picks it up at its next check, or straight away if you force one (see below).
 
