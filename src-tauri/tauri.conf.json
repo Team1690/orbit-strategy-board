@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Orbit Strategy Board",
-  "version": "26.6.0",
-  "identifier": "app.strategyboard",
+  "version": "../package.json",
+  "identifier": "io.github.team1690.strategyboard",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://frc.nexus https://www.thebluealliance.com; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"
     }
   },
   "bundle": {
@@ -41,6 +41,9 @@
     "iOS": {
       "minimumSystemVersion": "15.0",
       "bundleVersion": "26.6.1"
+    },
+    "android": {
+      "debugApplicationIdSuffix": ".dev"
     }
   }
 }

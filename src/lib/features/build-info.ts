@@ -1,5 +1,6 @@
 /** Build-time commit stamp rendered in the home footer. */
 export const buildCommit = __BUILD_COMMIT__;
+export const buildVersion = __BUILD_VERSION__;
 
 const INTERVALS: ReadonlyArray<readonly [unit: string, seconds: number]> = [
   ["year", 31536000],

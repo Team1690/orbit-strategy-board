@@ -10,6 +10,7 @@ const host = process.env.TAURI_DEV_HOST;
 
 const envFile = fileURLToPath(new URL("./orbit-strategy-board.env", import.meta.url));
 const env = { ...(existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf-8")) : {}), ...process.env };
+const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
 
 /** Build-time commit stamp shown in the footer. */
 function getGitCommitInfo() {
@@ -36,6 +37,7 @@ export default defineConfig(async () => ({
   plugins: [tailwindcss(), sveltekit()],
 
   define: {
+    __BUILD_VERSION__: JSON.stringify(version),
     __BUILD_COMMIT__: JSON.stringify(getGitCommitInfo()),
     __TBA_API_KEY__: JSON.stringify(env.VITE_TBA_API_KEY || env.TBA_API_KEY || ""),
     __NEXUS_API_KEY__: JSON.stringify(env.VITE_NEXUS_API_KEY || env.NEXUS_API_KEY || ""),

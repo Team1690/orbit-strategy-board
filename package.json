@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "team-colors": "node scripts/team-colors.mjs",
+    "release": "bun pm version --message 'bumped the version to %s'",
     "mobile:init": "bun tauri android init && bun run ios:init",
     "mobile:build": "bun tauri android build && bun run ios:build",
     "ios:init": "PATH=\"$PWD/scripts/swift-shim:$PATH\" bun tauri ios init && bun run ios:patch",

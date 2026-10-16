@@ -6,6 +6,10 @@ pub mod helpers;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // tauri's mobile dev server proxy builds a plain reqwest client - with rustls-no-provider it panics unless a default provider is installed
+    #[cfg(all(target_os = "android", dev))]
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())

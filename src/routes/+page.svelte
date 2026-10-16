@@ -10,7 +10,7 @@
   import { scheduleSync } from "$lib/stores/sync.svelte";
   import { toast } from "$lib/stores/toast.svelte";
   import { native } from "$lib/native/api";
-  import { buildCommit, isNativeRuntime, safeFilename, shareBoardFile, timeAgo } from "$lib/features";
+  import { buildCommit, buildVersion, isNativeRuntime, safeFilename, shareBoardFile, timeAgo } from "$lib/features";
   import { encodeMatchFile, homeEventGroups, toWhatIfMatch } from "$lib/domain";
   import { queueBadge } from "$lib/features/queue";
   import { registerServiceWorker, requestPersistentStorage } from "$lib/features/offline";
@@ -182,7 +182,9 @@
       class="w-full bg-[#0d0d0d] flex items-center justify-center border-t border-[#1a1a1a] relative"
       style="min-height: 4rem; padding-bottom: env(safe-area-inset-bottom, 0px);"
     >
-      <div id="last-commit-info" class="absolute left-6 text-[#999] text-xs" style="top: 50%; transform: translateY(-50%);">
+      <div id="last-commit-info" class="absolute left-6 text-[#999] text-xs flex items-center gap-2" style="top: 50%; transform: translateY(-50%);">
+        <span>v{buildVersion}</span>
+        <span>•</span>
         <a
           href={buildCommit.url}
           target="_blank"
