@@ -93,9 +93,10 @@ jobs:
           apk=src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
           certs=$("$build_tools/apksigner" verify --print-certs "$apk")
           echo "$certs"
-          digest=$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' <<< "$certs")
+          # build-tools 37 prints one "V2 Signer: ..." line per scheme where older ones print "Signer #1 ..." - match both and dedupe
+          digest=$(sed -n 's/^.*certificate SHA-256 digest: //p' <<< "$certs" | sort -u)
           if [[ "$digest" != "$ANDROID_CERT_SHA256" ]]; then
-            echo "::error::the APK is signed by $digest, not the pinned release key $ANDROID_CERT_SHA256"
+            echo "::error::the APK isn't signed by the pinned release key $ANDROID_CERT_SHA256 - see the apksigner output above"
             exit 1
           fi
           cp "$apk" "orbit-strategy-board-v$VERSION.apk"
