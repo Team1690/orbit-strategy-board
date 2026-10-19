@@ -228,7 +228,9 @@ export class WhiteboardController {
     const touch = event.pointerType === "touch";
     if (touch && this.penNear(event.timeStamp)) return;
     this.notePen(event);
-    if (event.pointerType === "pen" && event.button === 1) { this.toggleTool(); return; }
+    // the pointer events standard reports a pen's side button as the right button - some pens use the middle one - and it can be held as the tip lands
+    const sideButton = event.pointerType === "pen" && (event.button === 1 || event.button === 2 || (event.buttons & 6) !== 0);
+    if (sideButton) { this.endFingerDrawing(); this.toggleTool(); return; }
     const panning = event.pointerType === "mouse" && (event.button === 1 || event.button === 2);
     if (event.button !== 0 && !touch && !panning) return;
     event.preventDefault();
