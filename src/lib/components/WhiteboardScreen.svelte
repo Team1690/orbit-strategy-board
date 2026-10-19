@@ -90,6 +90,11 @@
     void boardConfig.update(color ? setTeamColorOverride(config, team, color) : removeTeamColorOverride(config, team));
   }
 
+  function penReturned() {
+    void boardConfig.update({ ...boardConfig.current, fingerDrawing: false });
+    onNotice("Finger Drawing is off now that the Pen is back.");
+  }
+
   function toggleChecklist() {
     checklistOpen = !checklistOpen;
     void native.storage.set(CHECKLIST_OPEN_KEY, checklistOpen).catch(() => undefined);
@@ -101,7 +106,7 @@
 
   $effect(() => {
     if (!container || !background || !items || !drawing || app.screen !== "whiteboard") return;
-    const next = createWhiteboardController({ onStateChange: (state) => (ui = state), onCommit: ({ match }) => queueCommit(match) });
+    const next = createWhiteboardController({ onStateChange: (state) => (ui = state), onCommit: ({ match }) => queueCommit(match), onPenReturn: penReturned });
     controller = next;
     const destroy = next.mount({ container, background, items, drawing });
     return () => { destroy(); if (controller === next) controller = null; loadedMatchId = ""; };
@@ -117,6 +122,10 @@
 
   $effect(() => {
     controller?.setTeamColors(boardConfig.current.teamColors, boardConfig.current.autoLighten);
+  });
+
+  $effect(() => {
+    controller?.setFingerDrawing(boardConfig.current.fingerDrawing);
   });
 
   $effect(() => {

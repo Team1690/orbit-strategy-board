@@ -49,4 +49,5 @@ export interface WhiteboardControllerOptions {
   onStateChange?: (state: WhiteboardState) => void;
   /** Called once after a completed local transaction; use this to persist the packet. */
   onCommit?: (commit: WhiteboardCommit) => void | Promise<void>;
+  onPenReturn?: () => void;
 }

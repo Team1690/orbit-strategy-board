@@ -1,6 +1,7 @@
 <script lang="ts">
   import { removeTeamColorOverride, resolveTeamColor, setTeamColorOverride, teamNumberKey } from "$lib/domain";
   import { boardConfig } from "$lib/stores/config.svelte";
+  import SettingSwitch from "./SettingSwitch.svelte";
 
   let team = $state("");
   let color = $state("#ffffff");
@@ -36,13 +37,13 @@
 </script>
 
 <div class="flex flex-col gap-5">
-  <button id="team-color-auto-lighten" role="switch" aria-checked={autoLighten} class="flex items-center gap-4 text-left cursor-pointer" onclick={toggleAutoLighten}>
-    <span class="switch" class:on={autoLighten}><span class="knob"></span></span>
-    <span class="flex flex-col gap-0.5">
-      <span class="text-base font-semibold text-[#e8e8e8]">Auto-Lighten dark colors</span>
-      <span class="text-sm text-[#999]">Scouting app colors too dark for the board are drawn lighter in the same hue. Overrides stay exactly as picked.</span>
-    </span>
-  </button>
+  <SettingSwitch
+    id="team-color-auto-lighten"
+    on={autoLighten}
+    title="Auto-Lighten dark colors"
+    description="Scouting app colors too dark for the board are drawn lighter in the same hue. Overrides stay exactly as picked."
+    onToggle={toggleAutoLighten}
+  />
 
   <form class="flex flex-wrap items-center gap-3" onsubmit={add}>
     <input
@@ -83,38 +84,6 @@
 </div>
 
 <style>
-  .switch {
-    position: relative;
-    flex-shrink: 0;
-    width: 3.25rem;
-    height: 1.875rem;
-    border: 1px solid #2a2a2a;
-    border-radius: 999px;
-    background: #181818;
-    transition: background 150ms, border-color 150ms;
-  }
-
-  .switch.on {
-    border-color: #ebebeb;
-    background: #ebebeb;
-  }
-
-  .knob {
-    position: absolute;
-    top: 0.1875rem;
-    left: 0.1875rem;
-    width: 1.375rem;
-    height: 1.375rem;
-    border-radius: 999px;
-    background: #666;
-    transition: transform 150ms, background 150ms;
-  }
-
-  .switch.on .knob {
-    transform: translateX(1.375rem);
-    background: #0d0d0d;
-  }
-
   .color-input {
     width: 3.5rem;
     height: 2.75rem;

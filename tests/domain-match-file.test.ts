@@ -2,7 +2,7 @@ import { indexedDB } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 
 import {
-  addChecklistRow, addCommonPath, BoardFileError, emptyBoardConfig, encodeBackup, encodeBoardConfigFile, encodeMatchFile, readBoardFile,
+  addChecklistRow, addCommonPath, BoardFileError, emptyBoardConfig, encodeBackup, encodeBoardConfigFile, encodeMatchFile, readBoardConfig, readBoardFile,
   saveCommonPath, setTeamColorOverride, type BoardConfig,
 } from "$lib/domain";
 import { browserInvoke, createBrowserMatchPacket } from "$lib/native/web";
@@ -98,6 +98,14 @@ describe("Board Config files", () => {
     const file = readBoardFile(encodeBoardConfigFile(boardConfig()));
 
     expect(file).toEqual({ kind: "board-config", config: boardConfig() });
+  });
+
+  it("carry Finger Drawing, which stays off unless it is switched on", () => {
+    expect(emptyBoardConfig().fingerDrawing).toBe(false);
+    expect(readBoardConfig({ fingerDrawing: "yes" }).fingerDrawing).toBe(false);
+    const config = { ...boardConfig(), fingerDrawing: true };
+
+    expect(readBoardFile(encodeBoardConfigFile(config))).toEqual({ kind: "board-config", config });
   });
 });
 

@@ -81,6 +81,7 @@ export class WhiteboardController {
   private teamColors: TeamColorOverrides = {};
   private autoLighten = false;
   private hiddenTeams = new Set<string>();
+  private fingerDrawing = false;
   private readonly options: Required<Pick<WhiteboardControllerOptions, "fieldImages">> & Omit<WhiteboardControllerOptions, "fieldImages">;
 
   constructor(options: WhiteboardControllerOptions = {}) {
@@ -176,6 +177,7 @@ export class WhiteboardController {
   resetView(): void { this.setCamera(homeCamera(this.frame)); }
   forceRedraw(): void { this.redrawAll(); }
   setTeamColors(overrides: TeamColorOverrides, autoLighten: boolean): void { this.teamColors = overrides; this.autoLighten = autoLighten; this.drawItems(); this.redrawDrawing(); }
+  setFingerDrawing(on: boolean): void { this.fingerDrawing = on; }
   resetMode(): void { this.setMode("auto"); }
 
   canUndo(): boolean { const mode = this.dataMode(); return !!mode && (this.undoHistory.get(mode)?.length ?? 0) > 0; }
@@ -226,8 +228,9 @@ export class WhiteboardController {
     if (event.button !== 0 && !touch && !panning) return;
     event.preventDefault();
     const screen = this.screenPoint(event); if (!screen) return;
-    if (touch || panning) { this.moverDown(event.pointerId, screen, touch); return; }
-    if (event.pointerType === "pen") { this.penDown = true; this.dropTouches(); }
+    if (panning || (touch && (!this.fingerDrawing || this.movers.size > 0))) { this.moverDown(event.pointerId, screen, touch); return; }
+    if (touch) { this.refs.drawing.setPointerCapture(event.pointerId); this.movers.set(event.pointerId, screen); }
+    if (event.pointerType === "pen") { this.penDown = true; this.dropTouches(); this.endFingerDrawing(); }
     const point = screenToField(screen, this.camera, this.frame);
     const grabbed = this.grab(point);
     // the strips beside the field only hold the station labels
@@ -245,7 +248,7 @@ export class WhiteboardController {
     this.refs?.drawing.setPointerCapture(id);
     this.movers.set(id, screen);
     if (this.movers.size > 2) return;
-    if (this.movers.size === 2) { this.settleTouchDrag(); this.startGesture(); return; }
+    if (this.movers.size === 2) { this.dropTouchMark(true); this.startGesture(); return; }
     const point = screenToField(screen, this.camera, this.frame);
     if (touch && this.grab(point)) { this.pointer = { id, type: "touch", start: point, last: point, stroke: null, erased: { kind: "erase", strokes: [], checkboxes: [] } }; return; }
     this.startGesture();
@@ -261,24 +264,29 @@ export class WhiteboardController {
     const spread = gesture.reach ? Math.hypot(points[0][0] - points[1][0], points[0][1] - points[1][1]) / gesture.reach : 1;
     this.setCamera(pinchCamera(gesture.camera, this.frame, gesture.from, middle(points), spread, MAX_ZOOM));
   }
-  // a second finger turns a robot drag into a pinch - the robot stays where it got to
-  private settleTouchDrag(): void {
-    if (this.pointer?.type !== "touch") return;
-    this.pointer = null; this.settleSelected();
-  }
-  private revertTouchDrag(): void {
-    if (this.pointer?.type !== "touch") return;
+  // a finger's unfinished mark gives way to a second finger or the pen - only a second finger leaves a dragged robot where it got to
+  private dropTouchMark(keepRobot: boolean): void {
+    const pointer = this.pointer; if (pointer?.type !== "touch") return;
     this.pointer = null;
-    if (this.selected) { Object.assign(this.selected.robot, this.selected.before); this.selected = null; this.drawItems(); }
+    if (this.selected) {
+      if (keepRobot) { this.settleSelected(); return; }
+      Object.assign(this.selected.robot, this.selected.before); this.selected = null; this.drawItems(); return;
+    }
+    if (pointer.erased.strokes.length || pointer.erased.checkboxes.length) this.apply(pointer.erased, "undo");
+    this.redrawDrawing();
   }
   // a palm can land before the pen does - whatever it moved goes back
   private dropTouches(): void {
-    this.revertTouchDrag();
+    this.dropTouchMark(false);
     if (this.gesture) this.setCamera(this.gesture.camera);
     for (const id of this.movers.keys()) {
       try { this.refs?.drawing.releasePointerCapture(id); } catch { /* already released */ }
     }
     this.movers.clear(); this.gesture = null;
+  }
+  private endFingerDrawing(): void {
+    if (!this.fingerDrawing) return;
+    this.fingerDrawing = false; this.options.onPenReturn?.();
   }
   private readonly onWheel = (event: WheelEvent): void => {
     if (!this.match || this.mode === "statbotics") return;
@@ -298,7 +306,6 @@ export class WhiteboardController {
     const point = this.eventPoint(event); if (!point) return;
     event.preventDefault();
     if (this.selected) { this.moveSelected(point); pointer.last = point; return; }
-    if (pointer.type === "touch") return;
     if (this.tool === "marker" && pointer.stroke) {
       if (Math.hypot(point[0] - pointer.last[0], point[1] - pointer.last[1]) < 2) return;
       this.drawStrokeSegment(pointer.last, point, pointer.stroke[0]); pointer.stroke.push([point[0], point[1]]); pointer.last = point;
@@ -314,7 +321,7 @@ export class WhiteboardController {
       this.gesture = null;
     }
     const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
-    if (palm) { this.revertTouchDrag(); return; }
+    if (palm) { this.dropTouchMark(false); return; }
     try { this.refs?.drawing.releasePointerCapture(event.pointerId); } catch { /* browser may already have released it */ }
     this.pointer = null;
     if (this.selected) {
