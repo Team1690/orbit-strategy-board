@@ -275,9 +275,9 @@
           class="w-full flex-1 min-h-0 m-0 p-0 bg-[#0d0d0d]"
           class:hidden={!ui.isCanvasVisible}
         >
-          <canvas bind:this={background} id="whiteboard-canvas-background" width="3510" height="1610" class="absolute m-0 select-none touch-none"></canvas>
-          <canvas bind:this={items} id="whiteboard-canvas-items" width="3510" height="1610" class="absolute m-0 select-none touch-none"></canvas>
-          <canvas bind:this={drawing} id="whiteboard-canvas-drawing" width="3510" height="1610" class="absolute m-0 select-none touch-none"></canvas>
+          <canvas bind:this={background} id="whiteboard-canvas-background" class="absolute m-0 select-none touch-none"></canvas>
+          <canvas bind:this={items} id="whiteboard-canvas-items" class="absolute m-0 select-none touch-none"></canvas>
+          <canvas bind:this={drawing} id="whiteboard-canvas-drawing" class="absolute m-0 select-none touch-none"></canvas>
         </div>
 
         {#if !ui.isCanvasVisible}

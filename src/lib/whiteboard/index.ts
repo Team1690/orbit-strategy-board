@@ -5,7 +5,7 @@ import { commonPathPaste, type CommonPath } from "$lib/domain/common-paths";
 import { defaultInk, inkColor, inkStation, isStrokeErasable, isStrokeVisible, NEUTRAL_INK, officialInkColor, teamInk, type Lineup } from "$lib/domain/ink";
 import type { StationKey } from "$lib/domain/stations";
 import { resolveTeamColor, type TeamColorOverrides } from "$lib/domain/team-colors";
-import { canvasLayout, distanceToSegment, pointInRotatedRect, segmentTouchesBounds, segmentsIntersect, strokeBounds, type Point } from "./geometry";
+import { canvasLayout, clampCamera, distanceToSegment, homeCamera, pinchCamera, pointInRotatedRect, screenToField, segmentTouchesBounds, segmentsIntersect, strokeBounds, type BoardFrame, type Camera, type Point } from "./geometry";
 import { FIELD_HEIGHT, FIELD_WIDTH, MAX_HISTORY, type BoardPhaseName, type CheckboxAnnotation, type RobotPosition, type Stroke, type WhiteboardCommit, type WhiteboardControllerOptions, type WhiteboardMatch, type WhiteboardMode, type WhiteboardPhase, type WhiteboardRefs, type WhiteboardState, type WhiteboardTool } from "./types";
 
 export * from "./geometry";
@@ -23,10 +23,11 @@ type Action =
   | { kind: "paste"; slot: Slot; strokes: Stroke[]; before: Pick<RobotPosition, "x" | "y" | "r">; after: Pick<RobotPosition, "x" | "y" | "r"> };
 
 const slots: readonly Slot[] = ["redOne", "redTwo", "redThree", "blueOne", "blueTwo", "blueThree"];
-const VIEWS: Record<View, Point> = { full: [FIELD_WIDTH / 2, FIELD_HEIGHT / 2], red: [(FIELD_WIDTH * 3) / 4, FIELD_HEIGHT / 2], blue: [FIELD_WIDTH / 4, FIELD_HEIGHT / 2] };
+const HALF_VIEWS: Record<Exclude<View, "full">, Point> = { red: [(FIELD_WIDTH * 3) / 4, FIELD_HEIGHT / 2], blue: [FIELD_WIDTH / 4, FIELD_HEIGHT / 2] };
 const fieldImageCache = new Map<string, HTMLImageElement>();
 const DOUBLE_TAP_MS = 400;
 const TAP_SLOP_PX = 10;
+const MAX_ZOOM = 3;
 // how long after the last pen event a touch still counts as the palm holding it
 const PEN_NEAR_MS = 500;
 
@@ -34,6 +35,7 @@ function phaseFor(match: WhiteboardMatch, mode: BoardPhaseName): WhiteboardPhase
 function lineupOf(match: WhiteboardMatch): Lineup { return { redOne: match.redOne, redTwo: match.redTwo, redThree: match.redThree, blueOne: match.blueOne, blueTwo: match.blueTwo, blueThree: match.blueThree }; }
 function isBlue(slot: Slot): boolean { return slot.startsWith("blue"); }
 function samePose(a: Pick<RobotPosition, "x" | "y" | "r">, b: Pick<RobotPosition, "x" | "y" | "r">): boolean { return a.x === b.x && a.y === b.y && a.r === b.r; }
+function middle(points: readonly Point[]): Point { return [points.reduce((sum, point) => sum + point[0], 0) / points.length, points.reduce((sum, point) => sum + point[1], 0) / points.length]; }
 
 /** Begin loading field art once per URL. It is a safe no-op during SSR/tests. */
 export function preloadFieldImages(fieldImages: Readonly<Record<number, string>> = { 2025: field2025, 2026: field2026 }): void {
@@ -58,7 +60,13 @@ export class WhiteboardController {
   private tool: WhiteboardTool = "marker";
   private ink = NEUTRAL_INK;
   private view: View = "full";
-  private camera: Point = VIEWS.full;
+  private camera: Camera = { zoom: 1, center: [FIELD_WIDTH / 2, FIELD_HEIGHT / 2] };
+  private frame: BoardFrame = { width: 0, height: 0, scale: 1, left: 0, top: 0 };
+  private pixelRatio = 1;
+  private redrawRequest = 0;
+  // pointers moving the view - fingers or a right-dragged mouse - in board pixels
+  private movers = new Map<number, Point>();
+  private gesture: { ids: number[]; camera: Camera; from: Point; reach: number } | null = null;
   private image: HTMLImageElement | null = null;
   private imageYear: number | undefined;
   private selected: { slot: Slot; robot: RobotPosition; offset: Point; rotating: boolean; before: Pick<RobotPosition, "x" | "y" | "r"> } | null = null;
@@ -70,7 +78,6 @@ export class WhiteboardController {
   private redoHistory = new Map<BoardPhaseName, Action[]>();
   private resizeObserver: ResizeObserver | null = null;
   private abortController: AbortController | null = null;
-  private layout = { scale: 1, left: 0, top: 0 };
   private teamColors: TeamColorOverrides = {};
   private autoLighten = false;
   private hiddenTeams = new Set<string>();
@@ -90,17 +97,15 @@ export class WhiteboardController {
     const contexts = { background: foundContexts.background, items: foundContexts.items, drawing: foundContexts.drawing };
     this.refs = refs;
     this.contexts = contexts;
-    for (const canvas of [refs.background, refs.items, refs.drawing]) {
-      canvas.width = FIELD_WIDTH; canvas.height = FIELD_HEIGHT;
-      canvas.style.transformOrigin = "top left";
-      canvas.style.touchAction = "none";
-    }
+    for (const canvas of [refs.background, refs.items, refs.drawing]) canvas.style.touchAction = "none";
     const signal = (this.abortController = new AbortController()).signal;
     refs.drawing.addEventListener("pointerdown", this.onPointerDown, { signal });
     refs.drawing.addEventListener("pointermove", this.onPointerMove, { signal });
     refs.drawing.addEventListener("pointerup", this.onPointerEnd, { signal });
     refs.drawing.addEventListener("pointercancel", this.onPointerEnd, { signal });
     refs.drawing.addEventListener("lostpointercapture", this.onPointerEnd, { signal });
+    refs.drawing.addEventListener("wheel", this.onWheel, { signal, passive: false });
+    refs.drawing.addEventListener("contextmenu", (event) => event.preventDefault(), { signal });
     // a pen hovering over the ink picker or toolbar still means a palm may be resting on the field
     window.addEventListener("pointermove", this.notePen, { signal, passive: true });
     window.addEventListener("keydown", this.onKeyDown, { signal });
@@ -114,7 +119,9 @@ export class WhiteboardController {
   destroy(): void {
     this.abortController?.abort(); this.abortController = null;
     this.resizeObserver?.disconnect(); this.resizeObserver = null;
-    this.refs = null; this.contexts = null; this.pointer = null; this.selected = null;
+    if (this.redrawRequest) cancelAnimationFrame(this.redrawRequest);
+    this.redrawRequest = 0;
+    this.refs = null; this.contexts = null; this.pointer = null; this.selected = null; this.movers.clear(); this.gesture = null;
   }
 
   setMatch(match: WhiteboardMatch | null): void {
@@ -123,6 +130,7 @@ export class WhiteboardController {
       this.redoHistory.clear();
       this.ink = match ? defaultInk(lineupOf(match)) : NEUTRAL_INK;
       this.hiddenTeams = new Set();
+      this.view = "full"; this.camera = homeCamera(this.frame); this.movers.clear(); this.gesture = null;
     }
     this.match = match;
     this.selected = null; this.pointer = null;
@@ -165,7 +173,11 @@ export class WhiteboardController {
     else { this.hiddenTeams.add(team); if (this.inkTeam(this.ink) === team) this.ink = NEUTRAL_INK; }
     this.redrawDrawing(); this.emitState();
   }
-  toggleView(): void { this.view = this.view === "full" ? "red" : this.view === "red" ? "blue" : "full"; this.camera = VIEWS[this.view]; this.redrawAll(); this.emitState(); }
+  toggleView(): void {
+    this.view = this.view === "full" ? "red" : this.view === "red" ? "blue" : "full";
+    this.camera = this.view === "full" ? homeCamera(this.frame) : clampCamera({ zoom: 2, center: HALF_VIEWS[this.view] }, this.frame, MAX_ZOOM);
+    this.redrawAll(); this.emitState();
+  }
   forceRedraw(): void { this.redrawAll(); }
   setTeamColors(overrides: TeamColorOverrides, autoLighten: boolean): void { this.teamColors = overrides; this.autoLighten = autoLighten; this.drawItems(); this.redrawDrawing(); }
   resetMode(): void { this.setMode("auto"); }
@@ -192,7 +204,7 @@ export class WhiteboardController {
     if (!this.refs || typeof document === "undefined") return null;
     const output = document.createElement("canvas"); output.width = FIELD_WIDTH; output.height = FIELD_HEIGHT;
     const context = output.getContext("2d"); if (!context) return null;
-    for (const canvas of [this.refs.background, this.refs.items]) context.drawImage(canvas, 0, 0);
+    this.paintBackground(context); this.paintItems(context);
     const phase = this.phase(); if (phase && this.mode !== "statbotics") this.paintDrawing(context, phase, new Set());
     return output.toDataURL(type, quality);
   }
@@ -207,36 +219,78 @@ export class WhiteboardController {
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (!this.refs || !this.match || this.mode === "statbotics") return;
     const touch = event.pointerType === "touch";
-    if (touch && (this.penNear(event.timeStamp) || this.pointer)) return;
+    if (touch && this.penNear(event.timeStamp)) return;
     this.notePen(event);
     if (event.pointerType === "pen" && event.button === 1) { this.toggleTool(); return; }
-    if (event.button !== 0 && !touch) return;
+    const panning = event.pointerType === "mouse" && (event.button === 1 || event.button === 2);
+    if (event.button !== 0 && !touch && !panning) return;
     event.preventDefault();
-    const point = this.eventPoint(event); if (!point) return;
-    if (event.pointerType === "pen") { this.penDown = true; this.dropTouch(); }
+    const screen = this.screenPoint(event); if (!screen) return;
+    if (touch || panning) { this.moverDown(event.pointerId, screen, touch); return; }
+    if (event.pointerType === "pen") { this.penDown = true; this.dropTouches(); }
+    const point = screenToField(screen, this.camera, this.frame);
     this.refs.drawing.setPointerCapture(event.pointerId);
     const erased: Extract<Action, { kind: "erase" }> = { kind: "erase", strokes: [], checkboxes: [] };
     this.pointer = { id: event.pointerId, type: event.pointerType, start: point, last: point, stroke: null, erased };
-    const selected = this.robotAt(point);
-    if (this.selected && this.rotationHandleAt(point, this.selected)) {
-      this.selected.rotating = true; this.selected.before = this.pose(this.selected.robot); return;
-    }
-    if (selected) { this.selected = { ...selected, rotating: false, before: this.pose(selected.robot) }; this.drawItems(); return; }
-    this.selected = null; this.drawItems();
-    if (touch) return;
+    if (this.grab(point)) return;
     if (this.tool === "marker") this.pointer.stroke = [this.ink, [point[0], point[1]]];
     else if (this.tool === "checkbox") this.toggleCheckbox(point);
     else this.eraseSegment(point, point, erased);
   };
-  // a palm can land before the pen does - whatever it moved goes back
-  private dropTouch(): void {
-    const pointer = this.pointer; if (pointer?.type !== "touch") return;
+  // one finger drags a robot or pans - a second finger pinches - a mouse pans with its right or middle button
+  private moverDown(id: number, screen: Point, touch: boolean): void {
+    this.refs?.drawing.setPointerCapture(id);
+    this.movers.set(id, screen);
+    if (this.movers.size > 2) return;
+    if (this.movers.size === 2) { this.settleTouchDrag(); this.startGesture(); return; }
+    const point = screenToField(screen, this.camera, this.frame);
+    if (touch && this.grab(point)) { this.pointer = { id, type: "touch", start: point, last: point, stroke: null, erased: { kind: "erase", strokes: [], checkboxes: [] } }; return; }
+    this.startGesture();
+  }
+  private startGesture(): void {
+    const ids = [...this.movers.keys()].slice(0, 2); const points = ids.map((id) => this.movers.get(id)!);
+    this.gesture = { ids, camera: this.camera, from: middle(points), reach: points.length === 2 ? Math.hypot(points[0][0] - points[1][0], points[0][1] - points[1][1]) : 0 };
+  }
+  private moveGesture(): void {
+    const gesture = this.gesture; if (!gesture) return;
+    const points = gesture.ids.map((id) => this.movers.get(id)).filter((point): point is Point => point !== undefined);
+    if (points.length !== gesture.ids.length) return;
+    const spread = gesture.reach ? Math.hypot(points[0][0] - points[1][0], points[0][1] - points[1][1]) / gesture.reach : 1;
+    this.setCamera(pinchCamera(gesture.camera, this.frame, gesture.from, middle(points), spread, MAX_ZOOM));
+  }
+  // a second finger turns a robot drag into a pinch - the robot stays where it got to
+  private settleTouchDrag(): void {
+    if (this.pointer?.type !== "touch") return;
+    this.pointer = null; this.settleSelected();
+  }
+  private revertTouchDrag(): void {
+    if (this.pointer?.type !== "touch") return;
     this.pointer = null;
-    try { this.refs?.drawing.releasePointerCapture(pointer.id); } catch { /* already released */ }
     if (this.selected) { Object.assign(this.selected.robot, this.selected.before); this.selected = null; this.drawItems(); }
   }
+  // a palm can land before the pen does - whatever it moved goes back
+  private dropTouches(): void {
+    this.revertTouchDrag();
+    if (this.gesture) this.setCamera(this.gesture.camera);
+    for (const id of this.movers.keys()) {
+      try { this.refs?.drawing.releasePointerCapture(id); } catch { /* already released */ }
+    }
+    this.movers.clear(); this.gesture = null;
+  }
+  private readonly onWheel = (event: WheelEvent): void => {
+    if (!this.match || this.mode === "statbotics") return;
+    const screen = this.screenPoint(event); if (!screen) return;
+    event.preventDefault();
+    // a trackpad pinch arrives as ctrl+wheel in much smaller steps
+    const step = event.deltaY * (event.deltaMode === 1 ? 16 : 1) * (event.ctrlKey ? 0.01 : 0.002);
+    this.setCamera(pinchCamera(this.camera, this.frame, screen, screen, Math.exp(-step), MAX_ZOOM));
+  };
   private readonly onPointerMove = (event: PointerEvent): void => {
     this.notePen(event);
+    if (this.movers.has(event.pointerId)) {
+      const screen = this.screenPoint(event);
+      if (screen) { this.movers.set(event.pointerId, screen); if (this.gesture?.ids.includes(event.pointerId)) { event.preventDefault(); this.moveGesture(); } }
+    }
     const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
     const point = this.eventPoint(event); if (!point) return;
     event.preventDefault();
@@ -250,19 +304,20 @@ export class WhiteboardController {
   private readonly onPointerEnd = (event: PointerEvent): void => {
     this.notePen(event);
     if (event.pointerType === "pen" && event.type !== "lostpointercapture") this.penDown = false;
-    const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
     // android cancels a touch it decides was a palm
-    if (event.type === "pointercancel" && pointer.type === "touch") { this.dropTouch(); return; }
+    const palm = event.type === "pointercancel" && event.pointerType === "touch";
+    if (this.movers.delete(event.pointerId) && this.gesture?.ids.includes(event.pointerId)) {
+      if (palm) this.setCamera(this.gesture.camera);
+      this.gesture = null;
+    }
+    const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
+    if (palm) { this.revertTouchDrag(); return; }
     try { this.refs?.drawing.releasePointerCapture(event.pointerId); } catch { /* browser may already have released it */ }
     this.pointer = null;
     if (this.selected) {
-      const { slot, robot, before } = this.selected; const after = this.pose(robot);
-      // Keep the robot selected after a drag so its rotation handle remains
-      // usable on the next gesture. Clicking empty space still deselects it.
-      this.selected = { slot, robot, offset: [0, 0], rotating: false, before: after };
-      if (!samePose(before, after)) this.record({ kind: "transform", slot, before, after }, "transform");
-      if (event.type === "pointerup") this.tapRobot(slot, pointer, event.timeStamp);
-      this.drawItems(); return;
+      const slot = this.settleSelected();
+      if (slot && event.type === "pointerup") this.tapRobot(slot, pointer, event.timeStamp);
+      return;
     }
     if (pointer.stroke) {
       const phase = this.phase(); if (phase) { phase.drawing.push(pointer.stroke); phase.drawingBBox.push(strokeBounds(pointer.stroke)); this.redrawDrawing(); this.record({ kind: "stroke", stroke: pointer.stroke }, "stroke"); }
@@ -301,12 +356,23 @@ export class WhiteboardController {
   }
   private redrawFor(action: Action): void { if (action.kind === "transform" || action.kind === "paste") this.drawItems(); if (action.kind !== "transform") this.redrawDrawing(); }
 
+  // the canvases match the board's pixels so zoomed strokes stay sharp
   private updateLayout(): void {
     if (!this.refs) return;
-    const layout = canvasLayout(this.refs.container.clientWidth, this.refs.container.clientHeight, FIELD_WIDTH, FIELD_HEIGHT, this.fieldYear());
-    if (!layout) return; this.layout = layout;
-    const transform = `translate(${layout.left}px, ${layout.top}px) scale(${layout.scale})`;
-    for (const canvas of [this.refs.background, this.refs.items, this.refs.drawing]) canvas.style.transform = transform;
+    const { clientWidth: width, clientHeight: height } = this.refs.container;
+    const layout = canvasLayout(width, height, FIELD_WIDTH, FIELD_HEIGHT, this.fieldYear());
+    if (!layout) return;
+    const atHome = this.camera.zoom <= 1;
+    this.frame = { width, height, ...layout };
+    this.pixelRatio = window.devicePixelRatio || 1;
+    for (const canvas of [this.refs.background, this.refs.items, this.refs.drawing]) {
+      const pixelWidth = Math.round(width * this.pixelRatio); const pixelHeight = Math.round(height * this.pixelRatio);
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+      canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
+    }
+    this.camera = atHome ? homeCamera(this.frame) : clampCamera(this.camera, this.frame, MAX_ZOOM);
+    this.redrawAll();
   }
   private fieldYear(): number | undefined {
     const requested = this.match?.fieldMetadata?.selectedFieldYear ?? this.match?.tbaYear;
@@ -325,27 +391,42 @@ export class WhiteboardController {
     this.image = image; this.updateLayout();
   }
   private redrawAll(): void { this.drawBackground(); this.drawItems(); this.redrawDrawing(); }
-  private screen(point: Point): Point { return [point[0] - (this.camera[0] - FIELD_WIDTH / 2), point[1] - (this.camera[1] - FIELD_HEIGHT / 2)]; }
-  private drawBackground(): void {
-    const context = this.contexts?.background; if (!context) return;
-    context.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+  private scheduleRedraw(): void {
+    if (this.redrawRequest) return;
+    this.redrawRequest = requestAnimationFrame(() => { this.redrawRequest = 0; this.redrawAll(); });
+  }
+  private setCamera(camera: Camera): void {
+    if (camera.zoom === this.camera.zoom && camera.center[0] === this.camera.center[0] && camera.center[1] === this.camera.center[1]) return;
+    this.camera = camera; this.scheduleRedraw();
+  }
+  // from here on the context draws in field units and the camera decides where they land
+  private begin(context: CanvasRenderingContext2D): void {
+    context.setTransform(1, 0, 0, 1, 0, 0); context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+    const scale = this.frame.scale * this.camera.zoom * this.pixelRatio;
+    context.setTransform(scale, 0, 0, scale, (this.frame.width / 2) * this.pixelRatio - this.camera.center[0] * scale, (this.frame.height / 2) * this.pixelRatio - this.camera.center[1] * scale);
+  }
+  private drawBackground(): void { const context = this.contexts?.background; if (!context) return; this.begin(context); this.paintBackground(context); }
+  private paintBackground(context: CanvasRenderingContext2D): void {
     if (this.mode === "notes") { this.drawNotesGrid(context); return; }
     context.fillStyle = "#0d0d0d"; context.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-    if (this.image?.complete && this.image.naturalWidth) { const [x, y] = this.screen([0, 0]); context.drawImage(this.image, x, y, FIELD_WIDTH, FIELD_HEIGHT); }
+    if (this.image?.complete && this.image.naturalWidth) { context.imageSmoothingQuality = "high"; context.drawImage(this.image, 0, 0, FIELD_WIDTH, FIELD_HEIGHT); }
     if (!this.match) return;
     const labels = fieldLayout(this.fieldYear()).teamLabels;
     const teams = slots.map((slot): [string, number, number] => [this.match![slot], labels[slot].x, labels[slot].y]);
     context.font = "bold 64px sans-serif"; context.fillStyle = "white"; context.textAlign = "center"; context.textBaseline = "middle";
-    for (const [name, x, y] of teams) { if ((x > FIELD_WIDTH / 2 && this.view === "blue") || (x < FIELD_WIDTH / 2 && this.view === "red")) continue; const [sx, sy] = this.screen([x, y]); context.save(); context.translate(Math.max(70, Math.min(FIELD_WIDTH - 70, sx)), Math.max(70, Math.min(FIELD_HEIGHT - 70, sy))); context.rotate(Math.PI / 2); context.fillText(name, 0, 0); context.restore(); }
+    for (const [name, x, y] of teams) { if ((x > FIELD_WIDTH / 2 && this.view === "blue") || (x < FIELD_WIDTH / 2 && this.view === "red")) continue; context.save(); context.translate(Math.max(70, Math.min(FIELD_WIDTH - 70, x)), Math.max(70, Math.min(FIELD_HEIGHT - 70, y))); context.rotate(Math.PI / 2); context.fillText(name, 0, 0); context.restore(); }
   }
   private drawNotesGrid(context: CanvasRenderingContext2D): void { context.fillStyle = "#000"; context.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT); context.strokeStyle = "rgba(255,255,255,.2)"; context.lineWidth = 1; for (let x = 0; x < FIELD_WIDTH; x += 100) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, FIELD_HEIGHT); context.stroke(); } for (let y = 0; y < FIELD_HEIGHT; y += 100) { context.beginPath(); context.moveTo(0, y); context.lineTo(FIELD_WIDTH, y); context.stroke(); } }
-  private drawItems(): void {
-    const context = this.contexts?.items; const phase = this.phase(); if (!context) return; context.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT); if (!phase || this.mode === "notes" || this.mode === "statbotics") return;
+  private drawItems(): void { const context = this.contexts?.items; if (!context) return; this.begin(context); this.paintItems(context); }
+  private paintItems(context: CanvasRenderingContext2D): void {
+    const phase = this.phase(); if (!phase || this.mode === "notes" || this.mode === "statbotics") return;
     for (const slot of slots) this.drawRobot(context, slot, phase[`${slot}Robot`]);
   }
   private drawRobot(context: CanvasRenderingContext2D, slot: Slot, robot: RobotPosition): void {
-    const [x, y] = this.screen([robot.x, robot.y]); const selected = this.selected?.slot === slot; const team = isBlue(slot) ? "#2563eb" : "#dc2626";
-    context.save(); context.translate(x, y); context.rotate(robot.r); context.fillStyle = team; if (selected) { context.shadowBlur = 28; context.shadowColor = "#fff"; } context.beginPath(); context.roundRect(-robot.w / 2, -robot.h / 2, robot.w, robot.h, 20); context.fill(); context.shadowBlur = 0;
+    const selected = this.selected?.slot === slot; const team = isBlue(slot) ? "#2563eb" : "#dc2626";
+    // shadow blur ignores the transform so it is scaled by hand
+    const unit = context.getTransform().a;
+    context.save(); context.translate(robot.x, robot.y); context.rotate(robot.r); context.fillStyle = team; if (selected) { context.shadowBlur = 28 * unit; context.shadowColor = "#fff"; } context.beginPath(); context.roundRect(-robot.w / 2, -robot.h / 2, robot.w, robot.h, 20); context.fill(); context.shadowBlur = 0;
     context.fillStyle = "#242429"; context.beginPath(); context.roundRect(-robot.w / 2 + 17, -robot.h / 2 + 17, robot.w - 34, robot.h - 34, 10); context.fill();
     const teamNumber = this.match?.[slot].trim();
     if (teamNumber) {
@@ -357,8 +438,9 @@ export class WhiteboardController {
     context.restore();
   }
   private redrawDrawing(): void {
-    const context = this.contexts?.drawing; const phase = this.phase(); if (!context) return; context.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT); if (!phase || this.mode === "statbotics") return;
+    const context = this.contexts?.drawing; const phase = this.phase(); if (!context) return; this.begin(context); if (!phase || this.mode === "statbotics") return;
     this.paintDrawing(context, phase, this.hiddenTeams);
+    if (this.pointer?.stroke) this.drawStroke(context, this.pointer.stroke);
   }
   private paintDrawing(context: CanvasRenderingContext2D, phase: WhiteboardPhase, hiddenTeams: ReadonlySet<string>): void {
     const lineup = this.match ? lineupOf(this.match) : null;
@@ -366,20 +448,36 @@ export class WhiteboardController {
     for (const checkbox of phase.checkboxes ?? []) this.drawCheckbox(context, checkbox);
   }
   private drawStroke(context: CanvasRenderingContext2D, stroke: Stroke): void {
-    if (stroke.length < 2) return; context.lineWidth = 10; context.lineCap = "round"; context.lineJoin = "round"; context.strokeStyle = this.strokeColor(stroke[0]); const first = this.screen(stroke[1]);
+    if (stroke.length < 2) return; context.lineWidth = 10; context.lineCap = "round"; context.lineJoin = "round"; context.strokeStyle = this.strokeColor(stroke[0]); const first = stroke[1];
     if (stroke.length === 2) { context.fillStyle = context.strokeStyle; context.beginPath(); context.arc(first[0], first[1], 5, 0, Math.PI * 2); context.fill(); return; }
-    context.beginPath(); context.moveTo(first[0], first[1]); for (const point of stroke.slice(2) as Point[]) { const screen = this.screen(point); context.lineTo(screen[0], screen[1]); } context.stroke();
+    context.beginPath(); context.moveTo(first[0], first[1]); for (const point of stroke.slice(2) as Point[]) context.lineTo(point[0], point[1]); context.stroke();
   }
-  private drawStrokeSegment(start: Point, end: Point, ink: number): void { const context = this.contexts?.drawing; if (!context) return; const a = this.screen(start); const b = this.screen(end); context.lineWidth = 10; context.lineCap = "round"; context.lineJoin = "round"; context.strokeStyle = this.strokeColor(ink); context.beginPath(); context.moveTo(a[0], a[1]); context.lineTo(b[0], b[1]); context.stroke(); }
-  private drawCheckbox(context: CanvasRenderingContext2D, checkbox: CheckboxAnnotation): void { const [x, y] = this.screen([checkbox[0], checkbox[1]]); const size = 150; context.strokeStyle = officialInkColor(checkbox[2]); context.lineWidth = 8; context.strokeRect(x - size / 2, y - size / 2, size, size); if (checkbox[3]) { context.strokeStyle = "#22c55e"; context.lineWidth = 12; context.lineCap = "round"; context.beginPath(); context.moveTo(x - size / 2 + 15, y); context.lineTo(x - size / 6, y + size / 2 - 15); context.lineTo(x + size / 2 - 15, y - size / 2 + 15); context.stroke(); } }
+  private drawStrokeSegment(start: Point, end: Point, ink: number): void { const context = this.contexts?.drawing; if (!context) return; context.lineWidth = 10; context.lineCap = "round"; context.lineJoin = "round"; context.strokeStyle = this.strokeColor(ink); context.beginPath(); context.moveTo(start[0], start[1]); context.lineTo(end[0], end[1]); context.stroke(); }
+  private drawCheckbox(context: CanvasRenderingContext2D, checkbox: CheckboxAnnotation): void { const [x, y] = checkbox; const size = 150; context.strokeStyle = officialInkColor(checkbox[2]); context.lineWidth = 8; context.strokeRect(x - size / 2, y - size / 2, size, size); if (checkbox[3]) { context.strokeStyle = "#22c55e"; context.lineWidth = 12; context.lineCap = "round"; context.beginPath(); context.moveTo(x - size / 2 + 15, y); context.lineTo(x - size / 6, y + size / 2 - 15); context.lineTo(x + size / 2 - 15, y - size / 2 + 15); context.stroke(); } }
   private inkTeam(ink: number): string | null { const station = inkStation(ink); return station && this.match ? this.match[station].trim() || null : null; }
   private strokeColor(ink: number): string { return this.match ? inkColor(ink, lineupOf(this.match), this.teamColors, this.autoLighten) : officialInkColor(ink); }
-  private eventPoint(event: PointerEvent): Point | null { if (!this.refs) return null; const rect = this.refs.drawing.getBoundingClientRect(); if (!rect.width || !rect.height) return null; return [(event.clientX - rect.left) / this.layout.scale + this.camera[0] - FIELD_WIDTH / 2, (event.clientY - rect.top) / this.layout.scale + this.camera[1] - FIELD_HEIGHT / 2]; }
+  private screenPoint(event: MouseEvent): Point | null { if (!this.refs) return null; const rect = this.refs.drawing.getBoundingClientRect(); if (!rect.width || !rect.height) return null; return [event.clientX - rect.left, event.clientY - rect.top]; }
+  private eventPoint(event: MouseEvent): Point | null { const screen = this.screenPoint(event); return screen && screenToField(screen, this.camera, this.frame); }
+  // true when the point lands on a robot or the selected robot's rotation handle - anywhere else deselects
+  private grab(point: Point): boolean {
+    if (this.selected && this.rotationHandleAt(point, this.selected)) { this.selected.rotating = true; this.selected.before = this.pose(this.selected.robot); return true; }
+    const hit = this.robotAt(point);
+    this.selected = hit && { ...hit, rotating: false, before: this.pose(hit.robot) }; this.drawItems();
+    return hit !== null;
+  }
+  // the robot stays selected after a drag so its rotation handle is ready for the next gesture
+  private settleSelected(): Slot | null {
+    if (!this.selected) return null;
+    const { slot, robot, before } = this.selected; const after = this.pose(robot);
+    this.selected = { slot, robot, offset: [0, 0], rotating: false, before: after };
+    if (!samePose(before, after)) this.record({ kind: "transform", slot, before, after }, "transform");
+    this.drawItems(); return slot;
+  }
   private pose(robot: RobotPosition): Pick<RobotPosition, "x" | "y" | "r"> { return { x: robot.x, y: robot.y, r: robot.r }; }
   private robotAt(point: Point): { slot: Slot; robot: RobotPosition; offset: Point } | null { const phase = this.phase(); if (!phase || this.mode === "notes") return null; for (const slot of [...slots].reverse()) { const robot = phase[`${slot}Robot`]; if (pointInRotatedRect(point, [robot.x, robot.y], robot.w, robot.h, robot.r)) return { slot, robot, offset: [robot.x - point[0], robot.y - point[1]] }; } return null; }
   private rotationHandleAt(point: Point, selected: NonNullable<WhiteboardController["selected"]>): boolean { const sign = isBlue(selected.slot) ? -1 : 1; const handle: Point = [selected.robot.x + sign * selected.robot.w / 2 * Math.cos(selected.robot.r), selected.robot.y + sign * selected.robot.w / 2 * Math.sin(selected.robot.r)]; return Math.hypot(point[0] - handle[0], point[1] - handle[1]) < 35; }
   private tapRobot(slot: Slot, pointer: NonNullable<WhiteboardController["pointer"]>, at: number): void {
-    const moved = Math.hypot(pointer.last[0] - pointer.start[0], pointer.last[1] - pointer.start[1]) * this.layout.scale >= TAP_SLOP_PX;
+    const moved = Math.hypot(pointer.last[0] - pointer.start[0], pointer.last[1] - pointer.start[1]) * this.frame.scale * this.camera.zoom >= TAP_SLOP_PX;
     const double = !moved && this.lastRobotTap?.slot === slot && at - this.lastRobotTap.at < DOUBLE_TAP_MS;
     this.lastRobotTap = moved || double ? null : { slot, at };
     if (double && this.match?.[slot].trim()) this.setInk(teamInk(slot));
