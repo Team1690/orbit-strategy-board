@@ -544,7 +544,7 @@ export class WhiteboardController {
     const moved = Math.hypot(pointer.last[0] - pointer.start[0], pointer.last[1] - pointer.start[1]) * this.frame.scale * this.camera.zoom >= TAP_SLOP_PX;
     const double = !moved && this.lastRobotTap?.slot === slot && at - this.lastRobotTap.at < DOUBLE_TAP_MS;
     this.lastRobotTap = moved || double ? null : { slot, at };
-    if (double && this.match?.[slot].trim()) this.setInk(teamInk(slot));
+    if (double && this.match?.[slot].trim()) { this.setInk(teamInk(slot)); this.setTool("marker"); }
   }
   private moveSelected(point: Point): void { if (!this.selected) return; const { robot, offset, rotating, slot } = this.selected; if (rotating) { robot.r = Math.atan2(point[1] - robot.y, point[0] - robot.x) + (isBlue(slot) ? Math.PI : 0); } else { robot.x = point[0] + offset[0]; robot.y = point[1] + offset[1]; } this.drawItems(); }
   private toggleCheckbox(point: Point): void { const phase = this.phase(); if (!phase) return; const index = phase.checkboxes.findIndex(([x, y]) => Math.abs(x - point[0]) <= 60 && Math.abs(y - point[1]) <= 60); if (index >= 0) { const before = phase.checkboxes[index][3]; phase.checkboxes[index][3] = !before; this.redrawDrawing(); this.record({ kind: "checkbox-toggle", index, before, after: !before }, "checkbox"); } else { const checkbox: CheckboxAnnotation = [point[0], point[1], NEUTRAL_INK, false]; phase.checkboxes.push(checkbox); this.redrawDrawing(); this.record({ kind: "checkbox-add", checkbox }, "checkbox"); } }
