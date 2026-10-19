@@ -593,11 +593,12 @@ body {
 
 #whiteboard-toolbar-back,
 #whiteboard-toolbar-undo,
-#whiteboard-toolbar-view-toggle {
+#whiteboard-toolbar-reset-view {
     transition: all 0.2s ease;
 }
 
-#whiteboard-toolbar-undo[style*="opacity: 0.5"] {
+#whiteboard-toolbar-undo[style*="opacity: 0.5"],
+#whiteboard-toolbar-reset-view[style*="opacity: 0.5"] {
     pointer-events: none;
     filter: grayscale(0.5);
 }

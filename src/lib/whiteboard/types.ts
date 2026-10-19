@@ -33,7 +33,7 @@ export interface WhiteboardRefs {
 }
 export interface WhiteboardState {
   mode: WhiteboardMode; tool: WhiteboardTool; ink: number;
-  view: "full" | "red" | "blue"; canUndo: boolean; canRedo: boolean;
+  zoomed: boolean; canUndo: boolean; canRedo: boolean;
   isCanvasVisible: boolean;
   // never saved
   hiddenTeams: readonly string[];

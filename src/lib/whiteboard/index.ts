@@ -13,7 +13,6 @@ export * from "./packet";
 export * from "./types";
 
 type Slot = StationKey;
-type View = "full" | "red" | "blue";
 type Action =
   | { kind: "stroke"; stroke: Stroke }
   | { kind: "erase"; strokes: Array<{ index: number; stroke: Stroke }>; checkboxes: Array<{ index: number; checkbox: CheckboxAnnotation }> }
@@ -23,7 +22,6 @@ type Action =
   | { kind: "paste"; slot: Slot; strokes: Stroke[]; before: Pick<RobotPosition, "x" | "y" | "r">; after: Pick<RobotPosition, "x" | "y" | "r"> };
 
 const slots: readonly Slot[] = ["redOne", "redTwo", "redThree", "blueOne", "blueTwo", "blueThree"];
-const HALF_VIEWS: Record<Exclude<View, "full">, Point> = { red: [(FIELD_WIDTH * 3) / 4, FIELD_HEIGHT / 2], blue: [FIELD_WIDTH / 4, FIELD_HEIGHT / 2] };
 const fieldImageCache = new Map<string, HTMLImageElement>();
 const DOUBLE_TAP_MS = 400;
 const TAP_SLOP_PX = 10;
@@ -59,7 +57,6 @@ export class WhiteboardController {
   private mode: WhiteboardMode = "auto";
   private tool: WhiteboardTool = "marker";
   private ink = NEUTRAL_INK;
-  private view: View = "full";
   private camera: Camera = { zoom: 1, center: [FIELD_WIDTH / 2, FIELD_HEIGHT / 2] };
   private frame: BoardFrame = { width: 0, height: 0, scale: 1, left: 0, top: 0 };
   private pixelRatio = 1;
@@ -130,7 +127,7 @@ export class WhiteboardController {
       this.redoHistory.clear();
       this.ink = match ? defaultInk(lineupOf(match)) : NEUTRAL_INK;
       this.hiddenTeams = new Set();
-      this.view = "full"; this.camera = homeCamera(this.frame); this.movers.clear(); this.gesture = null;
+      this.camera = homeCamera(this.frame); this.movers.clear(); this.gesture = null;
     }
     this.match = match;
     this.selected = null; this.pointer = null;
@@ -151,7 +148,7 @@ export class WhiteboardController {
   }
   /** Field artwork year in use; phase labels differ from 2026 onward. */
   getCurrentFieldYear(): number | undefined { return this.fieldYear(); }
-  getState(): WhiteboardState { return { mode: this.mode, tool: this.tool, ink: this.ink, view: this.view, canUndo: this.canUndo(), canRedo: this.canRedo(), isCanvasVisible: this.mode !== "statbotics", hiddenTeams: [...this.hiddenTeams] }; }
+  getState(): WhiteboardState { return { mode: this.mode, tool: this.tool, ink: this.ink, zoomed: this.camera.zoom > 1, canUndo: this.canUndo(), canRedo: this.canRedo(), isCanvasVisible: this.mode !== "statbotics", hiddenTeams: [...this.hiddenTeams] }; }
   setMode(mode: WhiteboardMode): void {
     if (this.mode === mode) return;
     this.mode = mode; this.selected = null; this.pointer = null;
@@ -173,11 +170,7 @@ export class WhiteboardController {
     else { this.hiddenTeams.add(team); if (this.inkTeam(this.ink) === team) this.ink = NEUTRAL_INK; }
     this.redrawDrawing(); this.emitState();
   }
-  toggleView(): void {
-    this.view = this.view === "full" ? "red" : this.view === "red" ? "blue" : "full";
-    this.camera = this.view === "full" ? homeCamera(this.frame) : clampCamera({ zoom: 2, center: HALF_VIEWS[this.view] }, this.frame, MAX_ZOOM);
-    this.redrawAll(); this.emitState();
-  }
+  resetView(): void { this.setCamera(homeCamera(this.frame)); }
   forceRedraw(): void { this.redrawAll(); }
   setTeamColors(overrides: TeamColorOverrides, autoLighten: boolean): void { this.teamColors = overrides; this.autoLighten = autoLighten; this.drawItems(); this.redrawDrawing(); }
   resetMode(): void { this.setMode("auto"); }
@@ -397,7 +390,9 @@ export class WhiteboardController {
   }
   private setCamera(camera: Camera): void {
     if (camera.zoom === this.camera.zoom && camera.center[0] === this.camera.center[0] && camera.center[1] === this.camera.center[1]) return;
+    const zoomed = this.camera.zoom > 1;
     this.camera = camera; this.scheduleRedraw();
+    if (zoomed !== camera.zoom > 1) this.emitState();
   }
   // from here on the context draws in field units and the camera decides where they land
   private begin(context: CanvasRenderingContext2D): void {
@@ -414,7 +409,7 @@ export class WhiteboardController {
     const labels = fieldLayout(this.fieldYear()).teamLabels;
     const teams = slots.map((slot): [string, number, number] => [this.match![slot], labels[slot].x, labels[slot].y]);
     context.font = "bold 64px sans-serif"; context.fillStyle = "white"; context.textAlign = "center"; context.textBaseline = "middle";
-    for (const [name, x, y] of teams) { if ((x > FIELD_WIDTH / 2 && this.view === "blue") || (x < FIELD_WIDTH / 2 && this.view === "red")) continue; context.save(); context.translate(Math.max(70, Math.min(FIELD_WIDTH - 70, x)), Math.max(70, Math.min(FIELD_HEIGHT - 70, y))); context.rotate(Math.PI / 2); context.fillText(name, 0, 0); context.restore(); }
+    for (const [name, x, y] of teams) { context.save(); context.translate(Math.max(70, Math.min(FIELD_WIDTH - 70, x)), Math.max(70, Math.min(FIELD_HEIGHT - 70, y))); context.rotate(Math.PI / 2); context.fillText(name, 0, 0); context.restore(); }
   }
   private drawNotesGrid(context: CanvasRenderingContext2D): void { context.fillStyle = "#000"; context.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT); context.strokeStyle = "rgba(255,255,255,.2)"; context.lineWidth = 1; for (let x = 0; x < FIELD_WIDTH; x += 100) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, FIELD_HEIGHT); context.stroke(); } for (let y = 0; y < FIELD_HEIGHT; y += 100) { context.beginPath(); context.moveTo(0, y); context.lineTo(FIELD_WIDTH, y); context.stroke(); } }
   private drawItems(): void { const context = this.contexts?.items; if (!context) return; this.begin(context); this.paintItems(context); }
@@ -433,7 +428,7 @@ export class WhiteboardController {
       context.fillStyle = resolveTeamColor(teamNumber, this.teamColors, this.autoLighten); context.strokeStyle = "rgba(255,255,255,0.35)"; context.lineWidth = 3;
       context.beginPath(); context.roundRect(-robot.w / 2 + 27, robot.h / 2 - 49, robot.w - 54, 22, 6); context.fill(); context.stroke();
     }
-    context.fillStyle = "#fff"; context.font = "bold 48px sans-serif"; context.textAlign = "center"; context.textBaseline = "middle"; if (this.match && (this.view === "full" || (this.view === "blue") === isBlue(slot))) context.fillText(this.match[slot], 0, 0);
+    context.fillStyle = "#fff"; context.font = "bold 48px sans-serif"; context.textAlign = "center"; context.textBaseline = "middle"; if (this.match) context.fillText(this.match[slot], 0, 0);
     if (selected) { context.beginPath(); context.arc(isBlue(slot) ? -robot.w / 2 : robot.w / 2, 0, 20, 0, Math.PI * 2); context.fill(); }
     context.restore();
   }

@@ -21,7 +21,7 @@
   let items = $state<HTMLCanvasElement>();
   let drawing = $state<HTMLCanvasElement>();
   let controller = $state<WhiteboardController | null>(null);
-  let ui = $state<WhiteboardState>({ mode: "auto", tool: "marker", ink: 0, view: "full", canUndo: false, canRedo: false, isCanvasVisible: true, hiddenTeams: [] });
+  let ui = $state<WhiteboardState>({ mode: "auto", tool: "marker", ink: 0, zoomed: false, canUndo: false, canRedo: false, isCanvasVisible: true, hiddenTeams: [] });
   let fieldYear = $state<number | undefined>(undefined);
   let toolbar = $state<HTMLDivElement>();
   let toolbarLeft = $state<HTMLDivElement>();
@@ -258,11 +258,12 @@
           </button>
         {/if}
         <button
-          id="whiteboard-toolbar-view-toggle"
+          id="whiteboard-toolbar-reset-view"
           class="text-base md:text-xl font-semibold select-none touch-none btn-secondary px-6 py-3 md:px-8 md:py-3"
-          onclick={() => controller?.toggleView()}
+          style="opacity: {ui.zoomed ? 1 : 0.5}"
+          onclick={() => controller?.resetView()}
         >
-          TOGGLE VIEW
+          RESET VIEW
         </button>
       </div>
     </div>
