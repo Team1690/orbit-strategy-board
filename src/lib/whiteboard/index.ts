@@ -25,6 +25,7 @@ const slots: readonly Slot[] = ["redOne", "redTwo", "redThree", "blueOne", "blue
 const fieldImageCache = new Map<string, HTMLImageElement>();
 const DOUBLE_TAP_MS = 400;
 const TAP_SLOP_PX = 10;
+const DOUBLE_TAP_SLOP_PX = 24;
 const MAX_ZOOM = 3;
 // room beside each alliance wall so the station labels never cover the field
 const LABEL_MARGIN = 130;
@@ -70,8 +71,12 @@ export class WhiteboardController {
   private image: HTMLImageElement | null = null;
   private imageYear: number | undefined;
   private selected: { slot: Slot; robot: RobotPosition; offset: Point; rotating: boolean; before: Pick<RobotPosition, "x" | "y" | "r"> } | null = null;
-  private pointer: { id: number; type: string; start: Point; last: Point; stroke: Stroke | null; erased: Extract<Action, { kind: "erase" }> } | null = null;
+  private pointer: {
+    id: number; type: string; start: Point; screen: Point; last: Point; travel: number; stroke: Stroke | null; erased: Extract<Action, { kind: "erase" }>;
+    waiting?: boolean; undoTop?: Action; redo?: Action[];
+  } | null = null;
   private lastRobotTap: { slot: Slot; at: number } | null = null;
+  private lastFieldTap: { at: number; screen: Point; mode: WhiteboardMode; action: Action | undefined; redo: Action[] | undefined } | null = null;
   private penDown = false;
   private penSeenAt = -Infinity;
   private undoHistory = new Map<BoardPhaseName, Action[]>();
@@ -236,13 +241,40 @@ export class WhiteboardController {
     // the strips beside the field only hold the station labels
     if (!grabbed && !onField(point)) return;
     this.refs.drawing.setPointerCapture(event.pointerId);
-    const erased: Extract<Action, { kind: "erase" }> = { kind: "erase", strokes: [], checkboxes: [] };
-    this.pointer = { id: event.pointerId, type: event.pointerType, start: point, last: point, stroke: null, erased };
-    if (grabbed) return;
-    if (this.tool === "marker") this.pointer.stroke = [this.ink, [point[0], point[1]]];
-    else if (this.tool === "checkbox") this.toggleCheckbox(point);
-    else this.eraseSegment(point, point, erased);
+    const mode = this.dataMode();
+    this.pointer = {
+      id: event.pointerId, type: event.pointerType, start: point, screen, last: point, travel: 0, stroke: null, erased: { kind: "erase", strokes: [], checkboxes: [] },
+      undoTop: mode ? this.undoHistory.get(mode)?.at(-1) : undefined, redo: mode ? this.redoHistory.get(mode) : undefined,
+    };
+    if (grabbed) { this.lastFieldTap = null; return; }
+    // a quick second tap by the last one might be a double tap - it marks nothing until it moves
+    if (this.secondTap(screen, event.timeStamp)) { this.pointer.waiting = true; return; }
+    this.startMark(this.pointer);
   };
+  private startMark(pointer: NonNullable<WhiteboardController["pointer"]>): void {
+    const point = pointer.start;
+    if (this.tool === "marker") pointer.stroke = [this.ink, [point[0], point[1]]];
+    else if (this.tool === "checkbox") this.toggleCheckbox(point);
+    else this.eraseSegment(point, point, pointer.erased);
+  }
+  private secondTap(screen: Point, at: number): boolean {
+    const tap = this.lastFieldTap;
+    return tap !== null && tap.mode === this.mode && at - tap.at < DOUBLE_TAP_MS && Math.hypot(screen[0] - tap.screen[0], screen[1] - tap.screen[1]) < DOUBLE_TAP_SLOP_PX;
+  }
+  private noteFieldTap(pointer: NonNullable<WhiteboardController["pointer"]>, event: PointerEvent): void {
+    const mode = this.dataMode(); const top = mode ? this.undoHistory.get(mode)?.at(-1) : undefined;
+    const tapped = event.type === "pointerup" && pointer.travel < TAP_SLOP_PX;
+    this.lastFieldTap = tapped ? { at: event.timeStamp, screen: pointer.screen, mode: this.mode, action: top !== pointer.undoTop ? top : undefined, redo: pointer.redo } : null;
+  }
+  // takes back whatever the first tap left and switches between the marker and the eraser
+  private doubleTap(): void {
+    const tap = this.lastFieldTap; this.lastFieldTap = null;
+    const mode = this.dataMode(); const undo = mode ? this.undoHistory.get(mode) : undefined;
+    if (mode && tap?.action && undo?.at(-1) === tap.action) {
+      undo.pop(); this.apply(tap.action, "undo"); this.redoHistory.set(mode, tap.redo ?? []); this.redrawFor(tap.action); this.commit("undo");
+    }
+    this.setTool(this.tool === "marker" ? "eraser" : "marker");
+  }
   // one finger drags a robot or pans - a second finger pinches - a mouse pans with its right or middle button
   private moverDown(id: number, screen: Point, touch: boolean): void {
     this.refs?.drawing.setPointerCapture(id);
@@ -250,7 +282,7 @@ export class WhiteboardController {
     if (this.movers.size > 2) return;
     if (this.movers.size === 2) { this.dropTouchMark(true); this.startGesture(); return; }
     const point = screenToField(screen, this.camera, this.frame);
-    if (touch && this.grab(point)) { this.pointer = { id, type: "touch", start: point, last: point, stroke: null, erased: { kind: "erase", strokes: [], checkboxes: [] } }; return; }
+    if (touch && this.grab(point)) { this.pointer = { id, type: "touch", start: point, screen, last: point, travel: 0, stroke: null, erased: { kind: "erase", strokes: [], checkboxes: [] } }; return; }
     this.startGesture();
   }
   private startGesture(): void {
@@ -303,9 +335,15 @@ export class WhiteboardController {
       if (screen) { this.movers.set(event.pointerId, screen); if (this.gesture?.ids.includes(event.pointerId)) { event.preventDefault(); this.moveGesture(); } }
     }
     const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
-    const point = this.eventPoint(event); if (!point) return;
+    const screen = this.screenPoint(event); if (!screen) return;
+    const point = screenToField(screen, this.camera, this.frame);
     event.preventDefault();
     if (this.selected) { this.moveSelected(point); pointer.last = point; return; }
+    pointer.travel = Math.max(pointer.travel, Math.hypot(screen[0] - pointer.screen[0], screen[1] - pointer.screen[1]));
+    if (pointer.waiting) {
+      if (pointer.travel < TAP_SLOP_PX) return;
+      pointer.waiting = false; this.lastFieldTap = null; this.startMark(pointer);
+    }
     if (this.tool === "marker" && pointer.stroke) {
       if (Math.hypot(point[0] - pointer.last[0], point[1] - pointer.last[1]) < 2) return;
       this.drawStrokeSegment(pointer.last, point, pointer.stroke[0]); pointer.stroke.push([point[0], point[1]]); pointer.last = point;
@@ -329,9 +367,11 @@ export class WhiteboardController {
       if (slot && event.type === "pointerup") this.tapRobot(slot, pointer, event.timeStamp);
       return;
     }
+    if (pointer.waiting) { if (event.type === "pointerup") this.doubleTap(); else this.lastFieldTap = null; return; }
     if (pointer.stroke) {
       const phase = this.phase(); if (phase) { phase.drawing.push(pointer.stroke); phase.drawingBBox.push(strokeBounds(pointer.stroke)); this.redrawDrawing(); this.record({ kind: "stroke", stroke: pointer.stroke }, "stroke"); }
     } else if (pointer.erased.strokes.length || pointer.erased.checkboxes.length) this.record(pointer.erased, "erase");
+    this.noteFieldTap(pointer, event);
   };
 
   private dataMode(): BoardPhaseName | null { return this.mode === "statbotics" ? null : this.mode; }
@@ -482,7 +522,6 @@ export class WhiteboardController {
   private inkTeam(ink: number): string | null { const station = inkStation(ink); return station && this.match ? this.match[station].trim() || null : null; }
   private strokeColor(ink: number): string { return this.match ? inkColor(ink, lineupOf(this.match), this.teamColors, this.autoLighten) : officialInkColor(ink); }
   private screenPoint(event: MouseEvent): Point | null { if (!this.refs) return null; const rect = this.refs.drawing.getBoundingClientRect(); if (!rect.width || !rect.height) return null; return [event.clientX - rect.left, event.clientY - rect.top]; }
-  private eventPoint(event: MouseEvent): Point | null { const screen = this.screenPoint(event); return screen && screenToField(screen, this.camera, this.frame); }
   // true when the point lands on a robot or the selected robot's rotation handle - anywhere else deselects
   private grab(point: Point): boolean {
     if (this.selected && this.rotationHandleAt(point, this.selected)) { this.selected.rotating = true; this.selected.before = this.pose(this.selected.robot); return true; }
