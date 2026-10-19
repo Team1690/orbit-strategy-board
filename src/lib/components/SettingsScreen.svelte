@@ -4,6 +4,7 @@
   import CommonPathsSection from "./settings/CommonPathsSection.svelte";
   import CurrentEventSection from "./settings/CurrentEventSection.svelte";
   import FilesSection from "./settings/FilesSection.svelte";
+  import PenSection from "./settings/PenSection.svelte";
   import TeamColorsSection from "./settings/TeamColorsSection.svelte";
 
   interface SettingsSection {
@@ -18,6 +19,7 @@
   const sections: SettingsSection[] = [
     { id: "checklist", title: "Checklist", description: "What every strategy meeting covers. Items can be ticked per Match; Headings group them.", component: ChecklistSection },
     { id: "team-colors", title: "Team Colors", description: "Auto-Lighten lifts scouting app colors that are too dark for the board. Recolor a team on this device when its color still clashes.", component: TeamColorsSection },
+    { id: "pen", title: "Pen", description: "Only the Pen draws on the board, so a resting palm never leaves a mark. Fingers drag robots and pinch or pan the view.", component: PenSection },
     { id: "common-paths", title: "Common Paths", description: "Saved robot plans you can paste into any Match from the whiteboard's PATHS button.", component: CommonPathsSection },
     { id: "current-event", title: "Current Event", description: "Schedule Sync follows this event and adds every match with 1690, with each team in its schedule Station.", component: CurrentEventSection },
     { id: "files", title: "Files", description: "Move this tablet's setup and Matches to another tablet, or keep a copy.", component: FilesSection },

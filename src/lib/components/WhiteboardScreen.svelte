@@ -21,7 +21,7 @@
   let items = $state<HTMLCanvasElement>();
   let drawing = $state<HTMLCanvasElement>();
   let controller = $state<WhiteboardController | null>(null);
-  let ui = $state<WhiteboardState>({ mode: "auto", tool: "marker", ink: 0, view: "full", canUndo: false, canRedo: false, isCanvasVisible: true, hiddenTeams: [] });
+  let ui = $state<WhiteboardState>({ mode: "auto", tool: "marker", ink: 0, zoomed: false, canUndo: false, canRedo: false, isCanvasVisible: true, hiddenTeams: [] });
   let fieldYear = $state<number | undefined>(undefined);
   let toolbar = $state<HTMLDivElement>();
   let toolbarLeft = $state<HTMLDivElement>();
@@ -90,6 +90,11 @@
     void boardConfig.update(color ? setTeamColorOverride(config, team, color) : removeTeamColorOverride(config, team));
   }
 
+  function penReturned() {
+    void boardConfig.update({ ...boardConfig.current, fingerDrawing: false });
+    onNotice("Finger Drawing is off now that the Pen is back.");
+  }
+
   function toggleChecklist() {
     checklistOpen = !checklistOpen;
     void native.storage.set(CHECKLIST_OPEN_KEY, checklistOpen).catch(() => undefined);
@@ -101,7 +106,7 @@
 
   $effect(() => {
     if (!container || !background || !items || !drawing || app.screen !== "whiteboard") return;
-    const next = createWhiteboardController({ onStateChange: (state) => (ui = state), onCommit: ({ match }) => queueCommit(match) });
+    const next = createWhiteboardController({ onStateChange: (state) => (ui = state), onCommit: ({ match }) => queueCommit(match), onPenReturn: penReturned });
     controller = next;
     const destroy = next.mount({ container, background, items, drawing });
     return () => { destroy(); if (controller === next) controller = null; loadedMatchId = ""; };
@@ -117,6 +122,10 @@
 
   $effect(() => {
     controller?.setTeamColors(boardConfig.current.teamColors, boardConfig.current.autoLighten);
+  });
+
+  $effect(() => {
+    controller?.setFingerDrawing(boardConfig.current.fingerDrawing);
   });
 
   $effect(() => {
@@ -258,11 +267,12 @@
           </button>
         {/if}
         <button
-          id="whiteboard-toolbar-view-toggle"
+          id="whiteboard-toolbar-reset-view"
           class="text-base md:text-xl font-semibold select-none touch-none btn-secondary px-6 py-3 md:px-8 md:py-3"
-          onclick={() => controller?.toggleView()}
+          style="opacity: {ui.zoomed ? 1 : 0.5}"
+          onclick={() => controller?.resetView()}
         >
-          TOGGLE VIEW
+          RESET VIEW
         </button>
       </div>
     </div>
@@ -275,9 +285,9 @@
           class="w-full flex-1 min-h-0 m-0 p-0 bg-[#0d0d0d]"
           class:hidden={!ui.isCanvasVisible}
         >
-          <canvas bind:this={background} id="whiteboard-canvas-background" width="3510" height="1610" class="absolute m-0 select-none touch-none"></canvas>
-          <canvas bind:this={items} id="whiteboard-canvas-items" width="3510" height="1610" class="absolute m-0 select-none touch-none"></canvas>
-          <canvas bind:this={drawing} id="whiteboard-canvas-drawing" width="3510" height="1610" class="absolute m-0 select-none touch-none"></canvas>
+          <canvas bind:this={background} id="whiteboard-canvas-background" class="absolute m-0 select-none touch-none"></canvas>
+          <canvas bind:this={items} id="whiteboard-canvas-items" class="absolute m-0 select-none touch-none"></canvas>
+          <canvas bind:this={drawing} id="whiteboard-canvas-drawing" class="absolute m-0 select-none touch-none"></canvas>
         </div>
 
         {#if !ui.isCanvasVisible}

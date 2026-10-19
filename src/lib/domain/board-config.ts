@@ -8,13 +8,14 @@ export interface BoardConfig {
   checklist: ChecklistRow[];
   teamColors: TeamColorOverrides;
   autoLighten: boolean;
+  fingerDrawing: boolean;
   commonPaths: CommonPath[];
 }
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 export function emptyBoardConfig(): BoardConfig {
-  return { checklist: [], teamColors: {}, autoLighten: true, commonPaths: [] };
+  return { checklist: [], teamColors: {}, autoLighten: true, fingerDrawing: false, commonPaths: [] };
 }
 
 export function readBoardConfig(value: unknown): BoardConfig {
@@ -30,6 +31,7 @@ export function readBoardConfig(value: unknown): BoardConfig {
     checklist: readChecklist(source.checklist),
     teamColors,
     autoLighten: source.autoLighten !== false,
+    fingerDrawing: source.fingerDrawing === true,
     commonPaths: readCommonPaths(source.commonPaths),
   };
 }

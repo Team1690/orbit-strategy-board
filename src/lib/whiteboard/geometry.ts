@@ -8,6 +8,7 @@ export function canvasLayout(
   canvasWidth: number,
   canvasHeight: number,
   fieldYear?: number,
+  margin = 0,
 ): { scale: number; left: number; top: number } | null {
   if (
     !Number.isFinite(wrapperWidth) || !Number.isFinite(wrapperHeight) ||
@@ -15,12 +16,51 @@ export function canvasLayout(
     wrapperWidth <= 0 || wrapperHeight <= 0 || canvasWidth <= 0 || canvasHeight <= 0
   ) return null;
 
-  const scale = Math.min(wrapperWidth / canvasWidth, wrapperHeight / canvasHeight);
+  const scale = Math.min(wrapperWidth / (canvasWidth + margin * 2), wrapperHeight / canvasHeight);
   const scaledHeight = canvasHeight * scale;
   const left = (wrapperWidth - canvasWidth * scale) / 2;
   const centeredTop = (wrapperHeight - scaledHeight) / 2;
   const crop = fieldYear === 2026 ? -30 : 0;
   return { scale, left, top: Math.max(0, Math.min(centeredTop + crop, Math.max(0, wrapperHeight - scaledHeight))) };
+}
+
+// the board on screen in css pixels - its size and where the whole field sits in it before any zoom
+export interface BoardFrame { width: number; height: number; scale: number; left: number; top: number }
+// the field point in the middle of the board and how far past the whole-field view it is zoomed
+export interface Camera { zoom: number; center: Point }
+
+export function homeCamera(frame: BoardFrame): Camera {
+  return { zoom: 1, center: [(frame.width / 2 - frame.left) / frame.scale, (frame.height / 2 - frame.top) / frame.scale] };
+}
+
+// the view never pans past what the whole-field view shows
+export function clampCamera(camera: Camera, frame: BoardFrame, maxZoom: number): Camera {
+  const zoom = Math.min(Math.max(camera.zoom, 1), maxZoom);
+  const home = homeCamera(frame).center;
+  const slackX = (frame.width / frame.scale) * (1 - 1 / zoom) / 2;
+  const slackY = (frame.height / frame.scale) * (1 - 1 / zoom) / 2;
+  return {
+    zoom,
+    center: [Math.min(Math.max(camera.center[0], home[0] - slackX), home[0] + slackX), Math.min(Math.max(camera.center[1], home[1] - slackY), home[1] + slackY)],
+  };
+}
+
+export function fieldToScreen(point: Point, camera: Camera, frame: BoardFrame): Point {
+  const scale = frame.scale * camera.zoom;
+  return [(point[0] - camera.center[0]) * scale + frame.width / 2, (point[1] - camera.center[1]) * scale + frame.height / 2];
+}
+
+export function screenToField(point: Point, camera: Camera, frame: BoardFrame): Point {
+  const scale = frame.scale * camera.zoom;
+  return [(point[0] - frame.width / 2) / scale + camera.center[0], (point[1] - frame.height / 2) / scale + camera.center[1]];
+}
+
+// zooms by spread and slides the camera so the field point that was at from lands at to
+export function pinchCamera(start: Camera, frame: BoardFrame, from: Point, to: Point, spread: number, maxZoom: number): Camera {
+  const anchor = screenToField(from, start, frame);
+  const zoom = Math.min(Math.max(start.zoom * spread, 1), maxZoom);
+  const scale = frame.scale * zoom;
+  return clampCamera({ zoom, center: [anchor[0] - (to[0] - frame.width / 2) / scale, anchor[1] - (to[1] - frame.height / 2) / scale] }, frame, maxZoom);
 }
 
 export function pointInRotatedRect(

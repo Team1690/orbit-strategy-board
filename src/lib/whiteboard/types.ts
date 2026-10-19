@@ -33,7 +33,7 @@ export interface WhiteboardRefs {
 }
 export interface WhiteboardState {
   mode: WhiteboardMode; tool: WhiteboardTool; ink: number;
-  view: "full" | "red" | "blue"; canUndo: boolean; canRedo: boolean;
+  zoomed: boolean; canUndo: boolean; canRedo: boolean;
   isCanvasVisible: boolean;
   // never saved
   hiddenTeams: readonly string[];
@@ -49,4 +49,5 @@ export interface WhiteboardControllerOptions {
   onStateChange?: (state: WhiteboardState) => void;
   /** Called once after a completed local transaction; use this to persist the packet. */
   onCommit?: (commit: WhiteboardCommit) => void | Promise<void>;
+  onPenReturn?: () => void;
 }
