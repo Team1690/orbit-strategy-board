@@ -22,6 +22,13 @@ describe("whiteboard eraser geometry", () => {
     expect(layout?.left).toBe(0);
     expect(layout?.top).toBeCloseTo(40.6553);
   });
+
+  it("leaves room beside the field for the station labels", () => {
+    const layout = canvasLayout(1000, 600, 3510, 1610, 2026, 130)!;
+    expect(layout.scale).toBeCloseTo(1000 / 3770);
+    expect(layout.left).toBeCloseTo(130 * layout.scale);
+    expect(layout.left + 3510 * layout.scale).toBeCloseTo(1000 - 130 * layout.scale);
+  });
 });
 
 describe("whiteboard camera", () => {

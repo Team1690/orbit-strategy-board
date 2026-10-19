@@ -26,6 +26,8 @@ const fieldImageCache = new Map<string, HTMLImageElement>();
 const DOUBLE_TAP_MS = 400;
 const TAP_SLOP_PX = 10;
 const MAX_ZOOM = 3;
+// room beside each alliance wall so the station labels never cover the field
+const LABEL_MARGIN = 130;
 // how long after the last pen event a touch still counts as the palm holding it
 const PEN_NEAR_MS = 500;
 
@@ -33,6 +35,7 @@ function phaseFor(match: WhiteboardMatch, mode: BoardPhaseName): WhiteboardPhase
 function lineupOf(match: WhiteboardMatch): Lineup { return { redOne: match.redOne, redTwo: match.redTwo, redThree: match.redThree, blueOne: match.blueOne, blueTwo: match.blueTwo, blueThree: match.blueThree }; }
 function isBlue(slot: Slot): boolean { return slot.startsWith("blue"); }
 function samePose(a: Pick<RobotPosition, "x" | "y" | "r">, b: Pick<RobotPosition, "x" | "y" | "r">): boolean { return a.x === b.x && a.y === b.y && a.r === b.r; }
+function onField(point: Point): boolean { return point[0] >= 0 && point[0] <= FIELD_WIDTH && point[1] >= 0 && point[1] <= FIELD_HEIGHT; }
 function middle(points: readonly Point[]): Point { return [points.reduce((sum, point) => sum + point[0], 0) / points.length, points.reduce((sum, point) => sum + point[1], 0) / points.length]; }
 
 /** Begin loading field art once per URL. It is a safe no-op during SSR/tests. */
@@ -192,12 +195,16 @@ export class WhiteboardController {
     this.record({ kind: "paste", slot: station, strokes, before, after }, "paste");
   }
 
-  /** Produces a complete field-sized PNG (background, robots, and annotations). */
+  /** Produces a complete whole-field PNG (background, robots, and annotations). */
   exportPng(type = "image/png", quality?: number): string | null {
     if (!this.refs || typeof document === "undefined") return null;
-    const output = document.createElement("canvas"); output.width = FIELD_WIDTH; output.height = FIELD_HEIGHT;
+    const margin = this.mode === "notes" ? 0 : LABEL_MARGIN;
+    const output = document.createElement("canvas"); output.width = FIELD_WIDTH + margin * 2; output.height = FIELD_HEIGHT;
     const context = output.getContext("2d"); if (!context) return null;
-    this.paintBackground(context); this.paintItems(context);
+    context.fillStyle = "#0d0d0d"; context.fillRect(0, 0, output.width, output.height); context.translate(margin, 0);
+    this.paintBackground(context);
+    if (margin) this.paintStationLabels(context, (x, y) => [x, y], 1);
+    this.paintItems(context);
     const phase = this.phase(); if (phase && this.mode !== "statbotics") this.paintDrawing(context, phase, new Set());
     return output.toDataURL(type, quality);
   }
@@ -222,10 +229,13 @@ export class WhiteboardController {
     if (touch || panning) { this.moverDown(event.pointerId, screen, touch); return; }
     if (event.pointerType === "pen") { this.penDown = true; this.dropTouches(); }
     const point = screenToField(screen, this.camera, this.frame);
+    const grabbed = this.grab(point);
+    // the strips beside the field only hold the station labels
+    if (!grabbed && !onField(point)) return;
     this.refs.drawing.setPointerCapture(event.pointerId);
     const erased: Extract<Action, { kind: "erase" }> = { kind: "erase", strokes: [], checkboxes: [] };
     this.pointer = { id: event.pointerId, type: event.pointerType, start: point, last: point, stroke: null, erased };
-    if (this.grab(point)) return;
+    if (grabbed) return;
     if (this.tool === "marker") this.pointer.stroke = [this.ink, [point[0], point[1]]];
     else if (this.tool === "checkbox") this.toggleCheckbox(point);
     else this.eraseSegment(point, point, erased);
@@ -353,7 +363,7 @@ export class WhiteboardController {
   private updateLayout(): void {
     if (!this.refs) return;
     const { clientWidth: width, clientHeight: height } = this.refs.container;
-    const layout = canvasLayout(width, height, FIELD_WIDTH, FIELD_HEIGHT, this.fieldYear());
+    const layout = canvasLayout(width, height, FIELD_WIDTH, FIELD_HEIGHT, this.fieldYear(), LABEL_MARGIN);
     if (!layout) return;
     const atHome = this.camera.zoom <= 1;
     this.frame = { width, height, ...layout };
@@ -400,16 +410,29 @@ export class WhiteboardController {
     const scale = this.frame.scale * this.camera.zoom * this.pixelRatio;
     context.setTransform(scale, 0, 0, scale, (this.frame.width / 2) * this.pixelRatio - this.camera.center[0] * scale, (this.frame.height / 2) * this.pixelRatio - this.camera.center[1] * scale);
   }
-  private drawBackground(): void { const context = this.contexts?.background; if (!context) return; this.begin(context); this.paintBackground(context); }
+  private drawBackground(): void {
+    const context = this.contexts?.background; if (!context) return;
+    this.begin(context); this.paintBackground(context);
+    if (this.mode === "notes") return;
+    // pinned where the whole-field view puts them so every team stays readable however far the field is zoomed
+    const { scale, left, top } = this.frame;
+    context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+    this.paintStationLabels(context, (x, y) => [left + x * scale, top + y * scale], scale);
+  }
   private paintBackground(context: CanvasRenderingContext2D): void {
     if (this.mode === "notes") { this.drawNotesGrid(context); return; }
     context.fillStyle = "#0d0d0d"; context.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
     if (this.image?.complete && this.image.naturalWidth) { context.imageSmoothingQuality = "high"; context.drawImage(this.image, 0, 0, FIELD_WIDTH, FIELD_HEIGHT); }
-    if (!this.match) return;
+  }
+  private paintStationLabels(context: CanvasRenderingContext2D, place: (x: number, y: number) => Point, unit: number): void {
+    const match = this.match; if (!match) return;
     const labels = fieldLayout(this.fieldYear()).teamLabels;
-    const teams = slots.map((slot): [string, number, number] => [this.match![slot], labels[slot].x, labels[slot].y]);
-    context.font = "bold 64px sans-serif"; context.fillStyle = "white"; context.textAlign = "center"; context.textBaseline = "middle";
-    for (const [name, x, y] of teams) { context.save(); context.translate(Math.max(70, Math.min(FIELD_WIDTH - 70, x)), Math.max(70, Math.min(FIELD_HEIGHT - 70, y))); context.rotate(Math.PI / 2); context.fillText(name, 0, 0); context.restore(); }
+    context.font = `bold ${64 * unit}px sans-serif`; context.textAlign = "center"; context.textBaseline = "middle";
+    context.lineJoin = "round"; context.lineWidth = 12 * unit; context.strokeStyle = "rgba(0, 0, 0, 0.85)"; context.fillStyle = "white";
+    for (const slot of slots) {
+      const [x, y] = place(labels[slot].x, labels[slot].y);
+      context.save(); context.translate(x, y); context.rotate(Math.PI / 2); context.strokeText(match[slot], 0, 0); context.fillText(match[slot], 0, 0); context.restore();
+    }
   }
   private drawNotesGrid(context: CanvasRenderingContext2D): void { context.fillStyle = "#000"; context.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT); context.strokeStyle = "rgba(255,255,255,.2)"; context.lineWidth = 1; for (let x = 0; x < FIELD_WIDTH; x += 100) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, FIELD_HEIGHT); context.stroke(); } for (let y = 0; y < FIELD_HEIGHT; y += 100) { context.beginPath(); context.moveTo(0, y); context.lineTo(FIELD_WIDTH, y); context.stroke(); } }
   private drawItems(): void { const context = this.contexts?.items; if (!context) return; this.begin(context); this.paintItems(context); }

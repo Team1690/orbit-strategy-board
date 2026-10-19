@@ -8,6 +8,7 @@ export function canvasLayout(
   canvasWidth: number,
   canvasHeight: number,
   fieldYear?: number,
+  margin = 0,
 ): { scale: number; left: number; top: number } | null {
   if (
     !Number.isFinite(wrapperWidth) || !Number.isFinite(wrapperHeight) ||
@@ -15,7 +16,7 @@ export function canvasLayout(
     wrapperWidth <= 0 || wrapperHeight <= 0 || canvasWidth <= 0 || canvasHeight <= 0
   ) return null;
 
-  const scale = Math.min(wrapperWidth / canvasWidth, wrapperHeight / canvasHeight);
+  const scale = Math.min(wrapperWidth / (canvasWidth + margin * 2), wrapperHeight / canvasHeight);
   const scaledHeight = canvasHeight * scale;
   const left = (wrapperWidth - canvasWidth * scale) / 2;
   const centeredTop = (wrapperHeight - scaledHeight) / 2;
