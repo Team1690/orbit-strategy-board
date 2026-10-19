@@ -27,6 +27,8 @@ const VIEWS: Record<View, Point> = { full: [FIELD_WIDTH / 2, FIELD_HEIGHT / 2], 
 const fieldImageCache = new Map<string, HTMLImageElement>();
 const DOUBLE_TAP_MS = 400;
 const TAP_SLOP_PX = 10;
+// how long after the last pen event a touch still counts as the palm holding it
+const PEN_NEAR_MS = 500;
 
 function phaseFor(match: WhiteboardMatch, mode: BoardPhaseName): WhiteboardPhase { return match[mode]; }
 function lineupOf(match: WhiteboardMatch): Lineup { return { redOne: match.redOne, redTwo: match.redTwo, redThree: match.redThree, blueOne: match.blueOne, blueTwo: match.blueTwo, blueThree: match.blueThree }; }
@@ -60,8 +62,10 @@ export class WhiteboardController {
   private image: HTMLImageElement | null = null;
   private imageYear: number | undefined;
   private selected: { slot: Slot; robot: RobotPosition; offset: Point; rotating: boolean; before: Pick<RobotPosition, "x" | "y" | "r"> } | null = null;
-  private pointer: { id: number; start: Point; last: Point; stroke: Stroke | null; erased: Extract<Action, { kind: "erase" }> } | null = null;
+  private pointer: { id: number; type: string; start: Point; last: Point; stroke: Stroke | null; erased: Extract<Action, { kind: "erase" }> } | null = null;
   private lastRobotTap: { slot: Slot; at: number } | null = null;
+  private penDown = false;
+  private penSeenAt = -Infinity;
   private undoHistory = new Map<BoardPhaseName, Action[]>();
   private redoHistory = new Map<BoardPhaseName, Action[]>();
   private resizeObserver: ResizeObserver | null = null;
@@ -97,6 +101,8 @@ export class WhiteboardController {
     refs.drawing.addEventListener("pointerup", this.onPointerEnd, { signal });
     refs.drawing.addEventListener("pointercancel", this.onPointerEnd, { signal });
     refs.drawing.addEventListener("lostpointercapture", this.onPointerEnd, { signal });
+    // a pen hovering over the ink picker or toolbar still means a palm may be resting on the field
+    window.addEventListener("pointermove", this.notePen, { signal, passive: true });
     window.addEventListener("keydown", this.onKeyDown, { signal });
     this.resizeObserver = new ResizeObserver(() => this.updateLayout());
     this.resizeObserver.observe(refs.container);
@@ -196,37 +202,57 @@ export class WhiteboardController {
     if (!modifier || event.code !== "KeyZ") return;
     event.preventDefault(); if (event.shiftKey) this.redo(); else this.undo();
   };
+  private readonly notePen = (event: PointerEvent): void => { if (event.pointerType === "pen") this.penSeenAt = event.timeStamp; };
+  private penNear(at: number): boolean { return this.penDown || at - this.penSeenAt < PEN_NEAR_MS; }
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (!this.refs || !this.match || this.mode === "statbotics") return;
+    const touch = event.pointerType === "touch";
+    if (touch && (this.penNear(event.timeStamp) || this.pointer)) return;
+    this.notePen(event);
     if (event.pointerType === "pen" && event.button === 1) { this.toggleTool(); return; }
-    if (event.button !== 0 && event.pointerType !== "touch") return;
+    if (event.button !== 0 && !touch) return;
     event.preventDefault();
     const point = this.eventPoint(event); if (!point) return;
+    if (event.pointerType === "pen") { this.penDown = true; this.dropTouch(); }
     this.refs.drawing.setPointerCapture(event.pointerId);
     const erased: Extract<Action, { kind: "erase" }> = { kind: "erase", strokes: [], checkboxes: [] };
-    this.pointer = { id: event.pointerId, start: point, last: point, stroke: null, erased };
+    this.pointer = { id: event.pointerId, type: event.pointerType, start: point, last: point, stroke: null, erased };
     const selected = this.robotAt(point);
     if (this.selected && this.rotationHandleAt(point, this.selected)) {
       this.selected.rotating = true; this.selected.before = this.pose(this.selected.robot); return;
     }
     if (selected) { this.selected = { ...selected, rotating: false, before: this.pose(selected.robot) }; this.drawItems(); return; }
     this.selected = null; this.drawItems();
+    if (touch) return;
     if (this.tool === "marker") this.pointer.stroke = [this.ink, [point[0], point[1]]];
     else if (this.tool === "checkbox") this.toggleCheckbox(point);
     else this.eraseSegment(point, point, erased);
   };
+  // a palm can land before the pen does - whatever it moved goes back
+  private dropTouch(): void {
+    const pointer = this.pointer; if (pointer?.type !== "touch") return;
+    this.pointer = null;
+    try { this.refs?.drawing.releasePointerCapture(pointer.id); } catch { /* already released */ }
+    if (this.selected) { Object.assign(this.selected.robot, this.selected.before); this.selected = null; this.drawItems(); }
+  }
   private readonly onPointerMove = (event: PointerEvent): void => {
+    this.notePen(event);
     const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
     const point = this.eventPoint(event); if (!point) return;
     event.preventDefault();
     if (this.selected) { this.moveSelected(point); pointer.last = point; return; }
+    if (pointer.type === "touch") return;
     if (this.tool === "marker" && pointer.stroke) {
       if (Math.hypot(point[0] - pointer.last[0], point[1] - pointer.last[1]) < 2) return;
       this.drawStrokeSegment(pointer.last, point, pointer.stroke[0]); pointer.stroke.push([point[0], point[1]]); pointer.last = point;
     } else if (this.tool === "eraser") { this.eraseSegment(pointer.last, point, pointer.erased); pointer.last = point; }
   };
   private readonly onPointerEnd = (event: PointerEvent): void => {
+    this.notePen(event);
+    if (event.pointerType === "pen" && event.type !== "lostpointercapture") this.penDown = false;
     const pointer = this.pointer; if (!pointer || pointer.id !== event.pointerId) return;
+    // android cancels a touch it decides was a palm
+    if (event.type === "pointercancel" && pointer.type === "touch") { this.dropTouch(); return; }
     try { this.refs?.drawing.releasePointerCapture(event.pointerId); } catch { /* browser may already have released it */ }
     this.pointer = null;
     if (this.selected) {
