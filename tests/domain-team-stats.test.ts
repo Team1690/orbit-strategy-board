@@ -35,4 +35,11 @@ describe("Stats tab", () => {
   it("marks Our Team's column", () => {
     expect(tables(quals5()).columns.filter((column) => column.ourTeam).map((column) => column.team)).toEqual(["1690"]);
   });
+
+  it("has one tab per Stage in the order the Scouting App sends them and opens on Pit", () => {
+    const { stages } = tables(quals5());
+
+    expect(stages.map((stage) => stage.label)).toEqual(["Pit", "Auto", "Tele", "Endgame"]);
+    expect(stages.filter((stage) => stage.chosen).map((stage) => stage.label)).toEqual(["Pit"]);
+  });
 });
