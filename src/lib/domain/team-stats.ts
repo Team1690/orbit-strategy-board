@@ -5,6 +5,9 @@ import { packetLineup } from "./reassign";
 import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 
+/** The newest Team Stats format this board can read. */
+export const TEAM_STATS_FORMAT_VERSION = 1;
+
 export interface StatsViewInput {
   // null until the first fetch answers
   fetch: TeamStatsFetch | null;
@@ -41,7 +44,9 @@ export interface StatsStage {
   rows: StatsRow[];
 }
 
-export type StatsView = { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[] };
+export type StatsView =
+  | { kind: "notice"; title: string; detail: string | null }
+  | { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[] };
 
 interface PublishedRow {
   label: string;
@@ -67,6 +72,10 @@ function publishedStages(payload: JsonValue | undefined): PublishedStage[] {
 }
 
 // a new kind of value doesn't bump the format version - so one this board can't draw shows as a dash
+function tooNew(payload: JsonValue | undefined): boolean {
+  return isObject(payload) && typeof payload.version === "number" && payload.version > TEAM_STATS_FORMAT_VERSION;
+}
+
 function cellText(value: JsonValue): string {
   return isObject(value) && value.kind === "text" && typeof value.text === "string" ? value.text : "-";
 }
@@ -82,6 +91,9 @@ export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten 
     const team = lineup[station].trim();
     return { station, team, payload: published.get(teamNumberKey(team) ?? "") };
   });
+  if (teams.some(({ payload }) => tooNew(payload))) {
+    return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
+  }
   const columns = teams.map(({ station, team, payload }) => ({
     station, stationName: STATION_NAMES[station], alliance: stationAlliance(station),
     team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),

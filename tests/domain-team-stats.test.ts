@@ -12,8 +12,12 @@ function quals5(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
   return newMatchPacket({ matchName: "Quals 5", redTeams: red, blueTeams: blue, tbaEventKey: "2026isde3" }, "quals-5");
 }
 
+function view(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
+  return statsView({ fetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+}
+
 function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
-  const shown = statsView({ fetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+  const shown = view(packet, input);
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
 }
@@ -111,5 +115,18 @@ describe("Stats tab", () => {
 
     expect(pit.rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
     expect(pit.rows.find((row) => row.label === "Pass Trench")?.cells).toEqual(Array(6).fill({ text: "-" }));
+  });
+
+  it("says the board needs updating when a team in the Match has Team Stats in a newer format", () => {
+    const answer = edited((copy) => {
+      payloadOf(copy, 1657).version = 2;
+    });
+
+    expect(view(quals5(), { fetch: { kind: "ok", answer } })).toEqual({
+      kind: "notice",
+      title: "This board needs an update",
+      detail: "The Scouting App publishes Team Stats in a newer format than this board can read.",
+    });
+    expect(view(quals5(["254", "4590", "2230"], ["1690", "3075", "3339"]), { fetch: { kind: "ok", answer } }).kind).toBe("stats");
   });
 });
