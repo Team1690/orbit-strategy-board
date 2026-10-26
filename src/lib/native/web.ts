@@ -1,7 +1,7 @@
 import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
-  PdfDocumentPlan, QrProgress, SourceResponse, StatboticsMatch, StatboticsTeamYear, StatboticsYear, TbaEvent,
+  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent,
 } from "./types";
 import { fieldLayout } from "$lib/domain/field-layout";
 import { newMatchPacket } from "$lib/domain/packets";
@@ -12,8 +12,6 @@ const STORE_NAME = "keyval";
 const APP_DATA_KEY = "appData";
 const TBA_BASE = "https://www.thebluealliance.com/api/v3";
 const NEXUS_BASE = "https://frc.nexus/api/v1";
-const STATBOTICS_BASE = "https://api.statbotics.io/v3";
-const STATBOTICS_TTL_MS = 24 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 15_000;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -196,19 +194,6 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
   return response.kind === "missing-key" ? { kind: "rejected-key" } : response;
 }
 
-async function statboticsFetch<T>(endpoint: string): Promise<T> {
-  if (!endpoint.startsWith("/") || endpoint.includes("..") || endpoint.includes("?") || endpoint.includes("#")) throw new Error("Invalid Statbotics endpoint");
-  const cacheKey = `statbotics_${endpoint.replace(/^\/match\//, "")}`;
-  const cached = await storageGet(cacheKey);
-  if (cached && typeof cached === "object" && !Array.isArray(cached)) {
-    const entry = cached as { data?: JsonValue; timestamp?: JsonValue };
-    if (typeof entry.timestamp === "number" && Date.now() - entry.timestamp <= STATBOTICS_TTL_MS) return entry.data as T;
-  }
-  const data = await requestJson<T>(`${STATBOTICS_BASE}${endpoint}`);
-  await storageSet(cacheKey, { data: data as JsonValue, timestamp: Date.now() });
-  return data;
-}
-
 function encodeBase64(value: string): string {
   const bytes = new TextEncoder().encode(value);
   let binary = "";
@@ -311,14 +296,6 @@ export async function browserInvoke<TResult>(command: string, args: Record<strin
     case "tba_has_api_key": result = Boolean((await storageGet("tbaApiKey")) || __TBA_API_KEY__); break;
     case "tba_team_matches_status": result = await tbaSourceRequest(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/event/${encodeURIComponent(String(args.eventKey))}/matches`, typeof args.etag === "string" ? args.etag : null); break;
     case "tba_team_events": result = await tbaRequest<TbaEvent[]>(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/events/${args.year}`); break;
-    case "statbotics_fetch": result = await statboticsFetch(String(args.endpoint)); break;
-    case "statbotics_match": result = await statboticsFetch<StatboticsMatch>(`/match/${encodeURIComponent(String(args.matchKey))}`); break;
-    case "statbotics_year": result = await statboticsFetch<StatboticsYear>(`/year/${args.year}`); break;
-    case "statbotics_team_year": result = await statboticsFetch<StatboticsTeamYear>(`/team_year/${args.team}/${args.year}`); break;
-    case "statbotics_cache_timestamp": { const cached = await storageGet(`statbotics_${args.matchKey}`); result = cached && typeof cached === "object" && !Array.isArray(cached) ? (cached as Record<string, JsonValue>).timestamp ?? null : null; break; }
-    case "statbotics_cached": { const cached = await storageGet(`statbotics_${args.matchKey}`); result = cached && typeof cached === "object" && !Array.isArray(cached) ? (cached as Record<string, JsonValue>).data ?? null : null; break; }
-    case "statbotics_clear_cache": { const entries = (await storageEntries()).filter(([key]) => key.startsWith("statbotics_")); await Promise.all(entries.map(([key]) => storageDelete(key))); result = entries.length; break; }
-    case "statbotics_match_key": result = `${args.eventKey}_${String(args.matchName).toLowerCase().replace(/\s+/g, "")}`; break;
     case "qr_encode": result = qrEncode(String(args.payload)); break;
     case "qr_reset": qrChunks.clear(); qrTotal = null; break;
     case "qr_receive": result = qrReceive(String(args.frame)); break;

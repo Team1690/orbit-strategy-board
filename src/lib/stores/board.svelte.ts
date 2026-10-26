@@ -3,7 +3,7 @@ import type { BoardMode, BoardState, BoardTool } from "$lib/native/types";
 
 import { toast } from "./toast.svelte";
 
-export type BoardPhase = Exclude<BoardMode, "statbotics">;
+export type BoardPhase = Exclude<BoardMode, "stats">;
 export type BoardUiTool = "draw" | "erase" | "move";
 
 const COLOR_NAMES = ["white", "red", "blue", "green", "yellow"] as const;

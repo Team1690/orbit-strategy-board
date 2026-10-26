@@ -5,7 +5,7 @@ import { browserInvoke } from "./web";
 import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
-  PdfDocumentPlan, QrProgress, SourceResponse, StatboticsMatch, StatboticsTeamYear, StatboticsYear, TbaEvent,
+  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent,
 } from "./types";
 
 export class NativeCommandError extends Error {
@@ -90,16 +90,6 @@ export const native = {
   nexus: {
     events: (etag?: string | null) => sourceCall("nexus_events", { etag: etag ?? null }),
     eventStatus: (eventKey: string, etag?: string | null) => sourceCall("nexus_event_status", { eventKey, etag: etag ?? null }),
-  },
-  statbotics: {
-    cached: (matchKey: string) => call<JsonValue | null>("statbotics_cached", { matchKey }),
-    cacheTimestamp: (matchKey: string) => call<number | null>("statbotics_cache_timestamp", { matchKey }),
-    clearCache: () => call<number>("statbotics_clear_cache"),
-    fetch: (endpoint: string) => call<JsonValue>("statbotics_fetch", { endpoint }),
-    matchKey: (eventKey: string, matchName: string) => call<string>("statbotics_match_key", { eventKey, matchName }),
-    match: (matchKey: string) => call<StatboticsMatch>("statbotics_match", { matchKey }),
-    year: (year: number) => call<StatboticsYear>("statbotics_year", { year }),
-    teamYear: (team: number, year: number) => call<StatboticsTeamYear>("statbotics_team_year", { team, year }),
   },
   qr: {
     encode: (payload: string) => call<string[]>("qr_encode", { payload }),

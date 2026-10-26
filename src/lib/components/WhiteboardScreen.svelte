@@ -12,7 +12,6 @@
   import ChecklistPanel from "./ChecklistPanel.svelte";
   import InkPicker from "./InkPicker.svelte";
   import SaveCommonPathModal from "./SaveCommonPathModal.svelte";
-  import StatboticsPanel from "./StatboticsPanel.svelte";
 
   let { pngRequest = 0, onNotice = () => {} }: { pngRequest?: number; onNotice?: (message: string) => void } = $props();
 
@@ -44,7 +43,7 @@
   const ticks = $derived(app.activeMatch ? readTicks(app.activeMatch.packet, boardConfig.current.checklist) : []);
   const teleopLabel = $derived(fieldYear === 2026 ? "ACTIVE" : "TELEOP");
   const endgameLabel = $derived(fieldYear === 2026 ? "INACTIVE" : "ENDGAME");
-  const phaseOnScreen = $derived<MatchPhase | null>(ui.mode === "statbotics" ? null : ui.mode);
+  const phaseOnScreen = $derived<MatchPhase | null>(ui.mode === "stats" ? null : ui.mode);
   const pathFieldYear = $derived(app.activeMatch ? matchFieldYear(app.activeMatch.packet) : 2026);
   const pathChoices = $derived(applyOpen && lineup && phaseOnScreen
     ? commonPathChoices(boardConfig.current.commonPaths, { fieldYear: pathFieldYear, phase: phaseOnScreen, lineup })
@@ -252,7 +251,7 @@
         <button id="whiteboard-toolbar-mode-endgame" class="mode-btn select-none touch-none" class:mode-btn-active={ui.mode === "endgame"} onclick={() => setMode("endgame")}>{endgameLabel}</button>
         <button id="whiteboard-toolbar-mode-notes" class="mode-btn select-none touch-none" class:mode-btn-active={ui.mode === "notes"} onclick={() => setMode("notes")}>NOTES</button>
         {#if showStats}
-          <button id="whiteboard-toolbar-mode-statbotics" class="mode-btn select-none touch-none" class:mode-btn-active={ui.mode === "statbotics"} onclick={() => setMode("statbotics")}>STATS</button>
+          <button id="whiteboard-toolbar-mode-stats" class="mode-btn select-none touch-none" class:mode-btn-active={ui.mode === "stats"} onclick={() => setMode("stats")}>STATS</button>
         {/if}
       </div>
 
@@ -291,9 +290,7 @@
         </div>
 
         {#if !ui.isCanvasVisible}
-          <div id="whiteboard-statbotics-container" class="w-full flex-1 min-h-0 m-0 p-0 bg-[#0d0d0d] flex flex-col overflow-y-auto">
-            <StatboticsPanel match={app.activeMatch} visible={!ui.isCanvasVisible} />
-          </div>
+          <div id="whiteboard-stats-container" class="w-full flex-1 min-h-0 m-0 p-0 bg-[#0d0d0d] flex flex-col overflow-y-auto"></div>
         {/if}
 
         {#if ui.isCanvasVisible}

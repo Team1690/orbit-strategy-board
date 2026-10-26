@@ -157,7 +157,7 @@ export class WhiteboardController {
   }
   /** Field artwork year in use; phase labels differ from 2026 onward. */
   getCurrentFieldYear(): number | undefined { return this.fieldYear(); }
-  getState(): WhiteboardState { return { mode: this.mode, tool: this.tool, ink: this.ink, zoomed: this.camera.zoom > 1, canUndo: this.canUndo(), canRedo: this.canRedo(), isCanvasVisible: this.mode !== "statbotics", hiddenTeams: [...this.hiddenTeams] }; }
+  getState(): WhiteboardState { return { mode: this.mode, tool: this.tool, ink: this.ink, zoomed: this.camera.zoom > 1, canUndo: this.canUndo(), canRedo: this.canRedo(), isCanvasVisible: this.mode !== "stats", hiddenTeams: [...this.hiddenTeams] }; }
   setMode(mode: WhiteboardMode): void {
     if (this.mode === mode) return;
     this.mode = mode; this.selected = null; this.pointer = null;
@@ -212,7 +212,7 @@ export class WhiteboardController {
     this.paintBackground(context);
     if (margin) this.paintStationLabels(context, (x, y) => [x, y], 1);
     this.paintItems(context);
-    const phase = this.phase(); if (phase && this.mode !== "statbotics") this.paintDrawing(context, phase, new Set());
+    const phase = this.phase(); if (phase && this.mode !== "stats") this.paintDrawing(context, phase, new Set());
     return output.toDataURL(type, quality);
   }
 
@@ -224,7 +224,7 @@ export class WhiteboardController {
   private readonly notePen = (event: PointerEvent): void => { if (event.pointerType === "pen") this.penSeenAt = event.timeStamp; };
   private penNear(at: number): boolean { return this.penDown || at - this.penSeenAt < PEN_NEAR_MS; }
   private readonly onPointerDown = (event: PointerEvent): void => {
-    if (!this.refs || !this.match || this.mode === "statbotics") return;
+    if (!this.refs || !this.match || this.mode === "stats") return;
     const touch = event.pointerType === "touch";
     if (touch && this.penNear(event.timeStamp)) return;
     this.notePen(event);
@@ -323,7 +323,7 @@ export class WhiteboardController {
     this.fingerDrawing = false; this.options.onPenReturn?.();
   }
   private readonly onWheel = (event: WheelEvent): void => {
-    if (!this.match || this.mode === "statbotics") return;
+    if (!this.match || this.mode === "stats") return;
     const screen = this.screenPoint(event); if (!screen) return;
     event.preventDefault();
     // a trackpad pinch arrives as ctrl+wheel in much smaller steps
@@ -376,7 +376,7 @@ export class WhiteboardController {
     this.noteFieldTap(pointer, event);
   };
 
-  private dataMode(): BoardPhaseName | null { return this.mode === "statbotics" ? null : this.mode; }
+  private dataMode(): BoardPhaseName | null { return this.mode === "stats" ? null : this.mode; }
   private phase(): WhiteboardPhase | null { return this.match && this.dataMode() ? phaseFor(this.match, this.dataMode()!) : null; }
   private history(store: Map<BoardPhaseName, Action[]>, mode: BoardPhaseName): Action[] { let values = store.get(mode); if (!values) { values = []; store.set(mode, values); } return values; }
   private record(action: Action, reason: WhiteboardCommit["reason"]): void { const mode = this.dataMode(); if (!mode) return; const undo = this.history(this.undoHistory, mode); undo.push(action); if (undo.length > MAX_HISTORY) undo.shift(); this.redoHistory.set(mode, []); this.commit(reason); }
@@ -486,7 +486,7 @@ export class WhiteboardController {
   private drawNotesGrid(context: CanvasRenderingContext2D): void { context.fillStyle = "#000"; context.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT); context.strokeStyle = "rgba(255,255,255,.2)"; context.lineWidth = 1; for (let x = 0; x < FIELD_WIDTH; x += 100) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, FIELD_HEIGHT); context.stroke(); } for (let y = 0; y < FIELD_HEIGHT; y += 100) { context.beginPath(); context.moveTo(0, y); context.lineTo(FIELD_WIDTH, y); context.stroke(); } }
   private drawItems(): void { const context = this.contexts?.items; if (!context) return; this.begin(context); this.paintItems(context); }
   private paintItems(context: CanvasRenderingContext2D): void {
-    const phase = this.phase(); if (!phase || this.mode === "notes" || this.mode === "statbotics") return;
+    const phase = this.phase(); if (!phase || this.mode === "notes" || this.mode === "stats") return;
     for (const slot of slots) this.drawRobot(context, slot, phase[`${slot}Robot`]);
   }
   private drawRobot(context: CanvasRenderingContext2D, slot: Slot, robot: RobotPosition): void {
@@ -505,7 +505,7 @@ export class WhiteboardController {
     context.restore();
   }
   private redrawDrawing(): void {
-    const context = this.contexts?.drawing; const phase = this.phase(); if (!context) return; this.begin(context); if (!phase || this.mode === "statbotics") return;
+    const context = this.contexts?.drawing; const phase = this.phase(); if (!context) return; this.begin(context); if (!phase || this.mode === "stats") return;
     this.paintDrawing(context, phase, this.hiddenTeams);
     if (this.pointer?.stroke) this.drawStroke(context, this.pointer.stroke);
   }

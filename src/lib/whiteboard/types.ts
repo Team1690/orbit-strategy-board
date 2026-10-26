@@ -4,9 +4,9 @@ export const FIELD_WIDTH = 3510;
 export const FIELD_HEIGHT = 1610;
 export const MAX_HISTORY = 100;
 
-export type WhiteboardMode = "auto" | "teleop" | "transition" | "endgame" | "notes" | "statbotics";
+export type WhiteboardMode = "auto" | "teleop" | "transition" | "endgame" | "notes" | "stats";
 export type WhiteboardTool = "marker" | "eraser" | "checkbox";
-export type BoardPhaseName = Exclude<WhiteboardMode, "statbotics">;
+export type BoardPhaseName = Exclude<WhiteboardMode, "stats">;
 export type Stroke = [color: number, ...points: [number, number][]];
 export type CheckboxAnnotation = [x: number, y: number, color: number, checked: boolean];
 

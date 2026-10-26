@@ -789,44 +789,6 @@ body {
     }
 }
 
-body #whiteboard-statbotics-container {
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-#statbotics-data-container {
-    overflow: visible;
-}
-
-[data-team-index] {
-    transition: all 0.2s ease;
-}
-
-[data-team-index]:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-#epa-details-modal {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-#epa-details-modal > div {
-    animation: modalFadeIn 0.1s ease-out;
-}
-
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 .backdrop-blur-xs {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
