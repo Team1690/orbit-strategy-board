@@ -13,7 +13,7 @@ function quals5(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
 }
 
 function view(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
-  return statsView({ fetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+  return statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
 }
 
 function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
@@ -115,7 +115,7 @@ describe("Stats tab", () => {
     const answer = edited((copy) => {
       publishedRow(copy, 1690, "Pit", "OPR").value = { kind: "sparkline", text: "42.5", points: [38.1, 42.5] };
     });
-    const pit = stage(tables(quals5(), { fetch: { kind: "ok", answer } }), "Pit");
+    const pit = stage(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "Pit");
 
     expect(pit.rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
     expect(pit.rows.find((row) => row.label === "Pass Trench")?.cells).toEqual(Array(6).fill({ text: "-" }));
@@ -126,20 +126,20 @@ describe("Stats tab", () => {
       payloadOf(copy, 1657).version = 2;
     });
 
-    expect(view(quals5(), { fetch: { kind: "ok", answer } })).toEqual({
+    expect(view(quals5(), { lastFetch: { kind: "ok", answer } })).toEqual({
       kind: "notice",
       title: "This board needs an update",
       detail: "The Scouting App publishes Team Stats in a newer format than this board can read.",
     });
-    expect(view(quals5(["254", "4590", "2230"], ["1690", "3075", "3339"]), { fetch: { kind: "ok", answer } }).kind).toBe("stats");
+    expect(view(quals5(["254", "4590", "2230"], ["1690", "3075", "3339"]), { lastFetch: { kind: "ok", answer } }).kind).toBe("stats");
   });
 
   it("says so while the Team Stats load", () => {
-    expect(view(quals5(), { fetch: null })).toEqual({ kind: "loading" });
+    expect(view(quals5(), { lastFetch: null })).toEqual({ kind: "loading" });
   });
 
   it("says Team Stats aren't set up in a build without the token", () => {
-    expect(view(quals5(), { fetch: { kind: "not-set-up" } })).toEqual({
+    expect(view(quals5(), { lastFetch: { kind: "not-set-up" } })).toEqual({
       kind: "notice",
       title: "Team Stats aren't set up in this build",
       detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild.",
@@ -147,7 +147,7 @@ describe("Stats tab", () => {
   });
 
   it("says the database can't be reached when the fetch failed", () => {
-    expect(view(quals5(), { fetch: { kind: "unreachable", detail: "fetch failed" } })).toEqual({
+    expect(view(quals5(), { lastFetch: { kind: "unreachable", detail: "fetch failed" } })).toEqual({
       kind: "notice",
       title: "Can't reach the database",
       detail: "fetch failed",

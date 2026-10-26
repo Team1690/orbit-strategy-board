@@ -12,11 +12,11 @@
 
   let { packet }: { packet: MatchPacket } = $props();
 
-  let fetched = $state.raw<TeamStatsFetch | null>(null);
+  let lastFetch = $state.raw<TeamStatsFetch | null>(null);
   let chosenStage = $state(lastStage);
   let explained = $state<string | null>(null);
 
-  const view = $derived(statsView({ fetch: fetched, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten }));
+  const view = $derived(statsView({ lastFetch, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten }));
   const stage = $derived(view.kind === "stats" ? view.stages.find((candidate) => candidate.chosen) : undefined);
 
   function choose(label: string) {
@@ -25,8 +25,8 @@
 
   onMount(() => {
     native.teamStats.fetch().then(
-      (result) => (fetched = result),
-      (error: unknown) => (fetched = { kind: "unreachable", detail: error instanceof Error ? error.message : String(error) }),
+      (result) => (lastFetch = result),
+      (error: unknown) => (lastFetch = { kind: "unreachable", detail: error instanceof Error ? error.message : String(error) }),
     );
   });
 </script>

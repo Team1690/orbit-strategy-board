@@ -88,7 +88,7 @@ export type SourceResponse =
   | { kind: "offline" }
   | { kind: "unreachable"; detail: string };
 
-/** One team's Team Stats as the Scouting App published them. Only the Stats view reads the payload. */
+// the payload stays raw json - only the stats view reads it and it has to cope with formats newer than this board
 export interface TeamStats {
   team_number: number;
   event: string;
@@ -96,7 +96,7 @@ export interface TeamStats {
   payload: JsonValue;
 }
 
-/** What the board's query answers. The Scouting App's golden fixture has the same shape. */
+// the scouting app's golden fixture has this shape too
 export interface TeamStatsAnswer {
   team_stats: TeamStats[];
 }

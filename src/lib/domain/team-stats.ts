@@ -5,12 +5,11 @@ import { packetLineup } from "./reassign";
 import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 
-/** The newest Team Stats format this board can read. */
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
 export interface StatsViewInput {
   // null until the first fetch answers
-  fetch: TeamStatsFetch | null;
+  lastFetch: TeamStatsFetch | null;
   packet: MatchPacket;
   chosenStage: string | null;
   teamColors: TeamColorOverrides;
@@ -85,14 +84,14 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
-export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
-  if (!fetch) return { kind: "loading" };
-  if (fetch.kind === "not-set-up") {
+export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
+  if (!lastFetch) return { kind: "loading" };
+  if (lastFetch.kind === "not-set-up") {
     return { kind: "notice", title: "Team Stats aren't set up in this build", detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild." };
   }
-  if (fetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: fetch.detail };
+  if (lastFetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: lastFetch.detail };
   const lineup = packetLineup(packet);
-  const published = new Map(fetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
+  const published = new Map(lastFetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
   const teams = STATIONS.flatMap((station) => {
     const team = lineup[station].trim();
     return team ? [{ station, team, payload: published.get(teamNumberKey(team) ?? "") }] : [];
