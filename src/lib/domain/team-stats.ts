@@ -21,6 +21,7 @@ export interface StatsColumn {
   team: string;
   color: string;
   ourTeam: boolean;
+  noData: boolean;
 }
 
 export interface StatsCell {
@@ -30,8 +31,8 @@ export interface StatsCell {
 export interface StatsRow {
   label: string;
   explanation: string | null;
-  // one per column
-  cells: StatsCell[];
+  // one per column - null where the team has no Team Stats
+  cells: Array<StatsCell | null>;
 }
 
 export interface StatsStage {
@@ -76,14 +77,15 @@ function unique(labels: string[]): string[] {
 export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
   const lineup = packetLineup(packet);
   const published = new Map(fetch?.kind === "ok" ? fetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]) : []);
-  const columns = STATIONS.map((station) => {
+  const teams = STATIONS.map((station) => {
     const team = lineup[station].trim();
-    return {
-      station, stationName: STATION_NAMES[station], alliance: stationAlliance(station),
-      team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM,
-    };
+    return { station, team, payload: published.get(teamNumberKey(team) ?? "") };
   });
-  const stagesByTeam = columns.map((column) => publishedStages(published.get(teamNumberKey(column.team) ?? "")));
+  const columns = teams.map(({ station, team, payload }) => ({
+    station, stationName: STATION_NAMES[station], alliance: stationAlliance(station),
+    team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),
+  }));
+  const stagesByTeam = teams.map(({ payload }) => publishedStages(payload));
   const labels = unique(stagesByTeam.flatMap((stages) => stages.map((stage) => stage.label)));
   const chosen = chosenStage !== null && labels.includes(chosenStage) ? chosenStage : labels[0];
   const stages = labels.map((label) => {
@@ -93,7 +95,7 @@ export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten 
       return {
         label: rowLabel,
         explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
-        cells: teamRows.map((row) => ({ text: row ? cellText(row.value) : "-" })),
+        cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-" }),
       };
     });
     return { label, chosen: label === chosen, rows };

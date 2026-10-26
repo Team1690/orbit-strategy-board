@@ -74,4 +74,13 @@ describe("Stats tab", () => {
       ["Climb (S/A/P)", null],
     ]);
   });
+
+  it("shows No data for a team without Team Stats", () => {
+    const shown = tables(quals5(["254", "4590", "5987"]));
+
+    expect(shown.columns.map((column) => [column.team, column.noData])).toEqual([
+      ["254", false], ["4590", false], ["5987", true], ["1690", false], ["1657", false], ["3339", false],
+    ]);
+    expect(shown.stages.flatMap((stage) => stage.rows.map((row) => row.cells[2]))).toEqual(Array(24).fill(null));
+  });
 });
