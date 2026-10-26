@@ -23,20 +23,54 @@ export interface StatsColumn {
   ourTeam: boolean;
 }
 
+export interface StatsCell {
+  text: string;
+}
+
+export interface StatsRow {
+  label: string;
+  explanation: string | null;
+  // one per column
+  cells: StatsCell[];
+}
+
 export interface StatsStage {
   label: string;
   chosen: boolean;
+  rows: StatsRow[];
 }
 
 export type StatsView = { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[] };
 
+interface PublishedRow {
+  label: string;
+  explanation: string | null;
+  value: JsonValue;
+}
+
 interface PublishedStage {
   label: string;
+  rows: PublishedRow[];
+}
+
+function publishedRows(rows: JsonValue | undefined): PublishedRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap((row) => isObject(row) && typeof row.label === "string"
+    ? [{ label: row.label, explanation: typeof row.explanation === "string" ? row.explanation : null, value: row.value ?? null }]
+    : []);
 }
 
 function publishedStages(payload: JsonValue | undefined): PublishedStage[] {
   if (!isObject(payload) || !Array.isArray(payload.stages)) return [];
-  return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label }] : []);
+  return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label, rows: publishedRows(stage.rows) }] : []);
+}
+
+function cellText(value: JsonValue): string {
+  return isObject(value) && typeof value.text === "string" ? value.text : "-";
+}
+
+function unique(labels: string[]): string[] {
+  return [...new Set(labels)];
 }
 
 export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
@@ -50,7 +84,19 @@ export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten 
     };
   });
   const stagesByTeam = columns.map((column) => publishedStages(published.get(teamNumberKey(column.team) ?? "")));
-  const labels = [...new Set(stagesByTeam.flatMap((stages) => stages.map((stage) => stage.label)))];
+  const labels = unique(stagesByTeam.flatMap((stages) => stages.map((stage) => stage.label)));
   const chosen = chosenStage !== null && labels.includes(chosenStage) ? chosenStage : labels[0];
-  return { kind: "stats", columns, stages: labels.map((label) => ({ label, chosen: label === chosen })) };
+  const stages = labels.map((label) => {
+    const teamStages = stagesByTeam.map((stages) => stages.find((stage) => stage.label === label));
+    const rows = unique(teamStages.flatMap((stage) => stage?.rows.map((row) => row.label) ?? [])).map((rowLabel) => {
+      const teamRows = teamStages.map((stage) => stage?.rows.find((row) => row.label === rowLabel));
+      return {
+        label: rowLabel,
+        explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
+        cells: teamRows.map((row) => ({ text: row ? cellText(row.value) : "-" })),
+      };
+    });
+    return { label, chosen: label === chosen, rows };
+  });
+  return { kind: "stats", columns, stages };
 }

@@ -18,6 +18,12 @@ function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
   return shown;
 }
 
+function stage(shown: ReturnType<typeof tables>, label: string) {
+  const found = shown.stages.find((candidate) => candidate.label === label);
+  if (!found) throw new Error(`no ${label} Stage`);
+  return found;
+}
+
 describe("Stats tab", () => {
   it("shows the Match's teams in Station order", () => {
     expect(tables(quals5()).columns.map(({ stationName, team }) => [stationName, team])).toEqual([
@@ -48,5 +54,24 @@ describe("Stats tab", () => {
 
     expect(chosen("Tele")).toEqual(["Tele"]);
     expect(chosen("Specific")).toEqual(["Pit"]);
+  });
+
+  it("labels each row once and shows each team's text in Station order", () => {
+    const pit = stage(tables(quals5()), "Pit");
+
+    expect(pit.rows.map((row) => row.label)).toEqual([
+      "OPR", "EPA", "BPS", "Drive Uptime", "Overall Uptime", "Stopped", "Weight", "Height", "Width", "Max Balls", "Pass Trench", "Pass Bump",
+    ]);
+    expect(pit.rows[0].cells).toEqual([{ text: "55.1" }, { text: "-" }, { text: "12.0" }, { text: "42.5" }, { text: "18.2" }, { text: "25.6" }]);
+  });
+
+  it("keeps a row's explanation on the row", () => {
+    const endgame = stage(tables(quals5()), "Endgame");
+
+    expect(endgame.rows.map((row) => [row.label, row.explanation])).toEqual([
+      ["Climb Level", null],
+      ["Time Avg", "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration."],
+      ["Climb (S/A/P)", null],
+    ]);
   });
 });
