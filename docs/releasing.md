@@ -79,6 +79,14 @@ The Stats tab reads Team Stats from the Scouting App's Hasura database with a to
 3. Update the secret with `gh secret set HASURA_BOARD_TOKEN` and paste the new token. Update your own `orbit-strategy-board.env` too.
 4. Cut a release. Every older APK loses the Stats tab until it updates.
 
+## Moving the Team Stats database
+
+`HASURA_HTTP_LINK` is the GraphQL address of the Scouting App's Hasura database, ending in `/v1/graphql`. The APK only reaches hosts listed under `connect-src` in the CSP in `src-tauri/tauri.conf.json`. A web build has no CSP, so a link to a new host works in `bun run dev` but not on the tablet. If the database moves to another host:
+
+1. Put the new host in `connect-src` in `src-tauri/tauri.conf.json`.
+2. Update the secret with `gh secret set HASURA_HTTP_LINK` and paste the new link. Update your own `orbit-strategy-board.env` too.
+3. Cut a release.
+
 ## The release key
 
 Every release is signed with one permanent key. Android only installs an update when it's signed by the same key as the installed app, and that's also what keeps every Match on the tablet across updates.
