@@ -96,9 +96,18 @@ export interface TeamStats {
   payload: JsonValue;
 }
 
-// the scouting app's golden fixture has this shape too
+// confirmed_at is the server's time - the age the stats tab shows is worked out from it
+export interface TeamStatsConfirmed {
+  event: string;
+  build_stamp: number;
+  confirmed_at: string;
+}
+
+// the scouting app's golden fixture has this shape too, less the server's confirmed_at
 export interface TeamStatsAnswer {
   team_stats: TeamStats[];
+  // the one Confirmed row - empty until a publisher stamps it
+  team_stats_confirmed: TeamStatsConfirmed[];
 }
 
 export type TeamStatsFetch =

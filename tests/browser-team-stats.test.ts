@@ -2,7 +2,7 @@ import { indexedDB } from "fake-indexeddb";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { browserInvoke } from "../src/lib/native/web";
-import type { TeamStats, TeamStatsFetch } from "../src/lib/native/types";
+import type { TeamStats, TeamStatsConfirmed, TeamStatsFetch } from "../src/lib/native/types";
 
 const LINK = "https://scouting.example/v1/graphql";
 
@@ -10,8 +10,9 @@ beforeAll(() => {
   Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: indexedDB });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals();
+  await browserInvoke("storage_clear");
 });
 
 function buildWith(token: string): void {
@@ -28,6 +29,8 @@ function databaseAnswers(body: unknown) {
 function teamStats(team: number): TeamStats {
   return { team_number: team, event: "2026isde3", build_stamp: 1761490800, payload: { version: 1, name: `Team ${team}`, estimated_points: null, stages: [] } };
 }
+
+const confirmed: TeamStatsConfirmed = { event: "2026isde3", build_stamp: 1761490800, confirmed_at: "2026-10-26T14:05:00.123456+00:00" };
 
 const fetchTeamStats = () => browserInvoke<TeamStatsFetch>("team_stats_fetch");
 
@@ -73,5 +76,18 @@ describe("Team Stats fetch", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
 
     expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "fetch failed" });
+  });
+});
+
+describe("Team Stats fetch and Confirmed", () => {
+  it("asks for the Confirmed row in the same request and brings it along", async () => {
+    buildWith("board-token");
+    const fetch = databaseAnswers({ data: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+
+    const result = await fetchTeamStats();
+
+    const [, init] = fetch.mock.calls[0];
+    expect(JSON.parse(String(init?.body)).query).toContain("team_stats_confirmed { event build_stamp confirmed_at }");
+    expect(result).toMatchObject({ kind: "ok", answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
   });
 });

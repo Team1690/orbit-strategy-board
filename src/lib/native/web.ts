@@ -13,7 +13,7 @@ const APP_DATA_KEY = "appData";
 const TBA_BASE = "https://www.thebluealliance.com/api/v3";
 const NEXUS_BASE = "https://frc.nexus/api/v1";
 const REQUEST_TIMEOUT_MS = 15_000;
-const TEAM_STATS_QUERY = "query TeamStats { team_stats(order_by: {team_number: asc}) { team_number event build_stamp payload } }";
+const TEAM_STATS_QUERY = "query TeamStats { team_stats(order_by: {team_number: asc}) { team_number event build_stamp payload } team_stats_confirmed { event build_stamp confirmed_at } }";
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 let qrTotal: number | null = null;
@@ -207,7 +207,7 @@ async function fetchTeamStats(): Promise<TeamStatsFetch> {
     const body = await response.json() as { data: TeamStatsAnswer; errors?: Array<{ message: string }> };
     // hasura answers a rejected token or a missing permission with 200 and an errors list
     if (body.errors?.length) return { kind: "unreachable", detail: body.errors[0].message };
-    return { kind: "ok", answer: { team_stats: body.data.team_stats } };
+    return { kind: "ok", answer: { team_stats: body.data.team_stats, team_stats_confirmed: body.data.team_stats_confirmed } };
   } catch (error) {
     return { kind: "unreachable", detail: error instanceof Error ? error.message : String(error) };
   }
