@@ -34,4 +34,11 @@ describe("Stage totals", () => {
       ["Endgame", null],
     ]);
   });
+
+  it("shows a dash for an alliance where no team has a total", () => {
+    expect(tables(["4590", "5987", ""]).stages.flatMap((stage) => stage.totals ? [[stage.label, stage.totals]] : [])).toEqual([
+      ["Auto", { red: "-", blue: "20" }],
+      ["Tele", { red: "-", blue: "55" }],
+    ]);
+  });
 });
