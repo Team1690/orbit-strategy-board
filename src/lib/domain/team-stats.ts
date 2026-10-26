@@ -45,6 +45,7 @@ export interface StatsStage {
 }
 
 export type StatsView =
+  | { kind: "loading" }
   | { kind: "notice"; title: string; detail: string | null }
   | { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[] };
 
@@ -85,8 +86,13 @@ function unique(labels: string[]): string[] {
 }
 
 export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
+  if (!fetch) return { kind: "loading" };
+  if (fetch.kind === "not-set-up") {
+    return { kind: "notice", title: "Team Stats aren't set up in this build", detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild." };
+  }
+  if (fetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: fetch.detail };
   const lineup = packetLineup(packet);
-  const published = new Map(fetch?.kind === "ok" ? fetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]) : []);
+  const published = new Map(fetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
   const teams = STATIONS.map((station) => {
     const team = lineup[station].trim();
     return { station, team, payload: published.get(teamNumberKey(team) ?? "") };

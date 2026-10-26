@@ -129,4 +129,24 @@ describe("Stats tab", () => {
     });
     expect(view(quals5(["254", "4590", "2230"], ["1690", "3075", "3339"]), { fetch: { kind: "ok", answer } }).kind).toBe("stats");
   });
+
+  it("says so while the Team Stats load", () => {
+    expect(view(quals5(), { fetch: null })).toEqual({ kind: "loading" });
+  });
+
+  it("says Team Stats aren't set up in a build without the token", () => {
+    expect(view(quals5(), { fetch: { kind: "not-set-up" } })).toEqual({
+      kind: "notice",
+      title: "Team Stats aren't set up in this build",
+      detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild.",
+    });
+  });
+
+  it("says the database can't be reached when the fetch failed", () => {
+    expect(view(quals5(), { fetch: { kind: "unreachable", detail: "fetch failed" } })).toEqual({
+      kind: "notice",
+      title: "Can't reach the database",
+      detail: "fetch failed",
+    });
+  });
 });
