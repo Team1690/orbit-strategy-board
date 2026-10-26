@@ -72,7 +72,7 @@ describe("Stats tab", () => {
   it("has one tab per Stage in the order the Scouting App sends them and opens on Pit", () => {
     const { stages } = tables(quals5());
 
-    expect(stages.map((stage) => stage.label)).toEqual(["Pit", "Auto", "Tele", "Endgame"]);
+    expect(stages.map((stage) => stage.label)).toEqual(["Pit", "Auto", "Tele", "Endgame", "Specific"]);
     expect(stages.filter((stage) => stage.chosen).map((stage) => stage.label)).toEqual(["Pit"]);
   });
 
@@ -80,7 +80,7 @@ describe("Stats tab", () => {
     const chosen = (chosenStage: string) => tables(quals5(), { chosenStage }).stages.filter((stage) => stage.chosen).map((stage) => stage.label);
 
     expect(chosen("Tele")).toEqual(["Tele"]);
-    expect(chosen("Specific")).toEqual(["Pit"]);
+    expect(chosen("Practice")).toEqual(["Pit"]);
   });
 
   it("labels each row once and shows each team's text in Station order", () => {

@@ -43,7 +43,7 @@ describe("Active Faults and Robot Tags", () => {
           { match: "Q2", status: "In progress", message: "Intake jams on the bump", resolution: "New roller tonight", scouters: null },
         ]],
       ]],
-      ["Auto", []], ["Tele", []], ["Endgame", []],
+      ["Auto", []], ["Tele", []], ["Endgame", []], ["Specific", []],
     ]);
   });
 

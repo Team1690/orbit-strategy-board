@@ -290,6 +290,29 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 1,
+              "defense_starred": true,
+              "categories": [
+                {
+                  "label": "Scoring",
+                  "stars": 5,
+                  "ratings": 1,
+                  "latest": "Fast shooter from anywhere",
+                  "older": 0
+                },
+                {
+                  "label": "Defense",
+                  "stars": 4,
+                  "ratings": 1,
+                  "latest": "Plays strong defense late",
+                  "older": 0
+                }
+              ]
+            }
           }
         ]
       }
@@ -572,6 +595,14 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 0,
+              "defense_starred": false,
+              "categories": []
+            }
           }
         ]
       }
@@ -851,6 +882,14 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 0,
+              "defense_starred": false,
+              "categories": []
+            }
           }
         ]
       }
@@ -1158,6 +1197,36 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 2,
+              "defense_starred": false,
+              "categories": [
+                {
+                  "label": "General",
+                  "stars": 4,
+                  "ratings": 2,
+                  "latest": "Very consistent cycles",
+                  "older": 1
+                },
+                {
+                  "label": "Driving",
+                  "stars": 5,
+                  "ratings": 1,
+                  "latest": "נהג מהיר ומדויק",
+                  "older": 0
+                },
+                {
+                  "label": "Climbing",
+                  "stars": 5,
+                  "ratings": 1,
+                  "latest": "Climbs L3 every match",
+                  "older": 0
+                }
+              ]
+            }
           }
         ]
       }
@@ -1454,6 +1523,22 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 1,
+              "defense_starred": false,
+              "categories": [
+                {
+                  "label": "General",
+                  "stars": null,
+                  "ratings": 0,
+                  "latest": "Broke down in Q2, fixed for Q4",
+                  "older": 0
+                }
+              ]
+            }
           }
         ]
       }
@@ -1739,6 +1824,14 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 0,
+              "defense_starred": false,
+              "categories": []
+            }
           }
         ]
       }
@@ -2021,6 +2114,22 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 0,
+              "defense_starred": false,
+              "categories": [
+                {
+                  "label": "Driving",
+                  "stars": 3,
+                  "ratings": 1,
+                  "latest": "",
+                  "older": 0
+                }
+              ]
+            }
           }
         ]
       }
@@ -2288,6 +2397,14 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 0,
+              "defense_starred": false,
+              "categories": []
+            }
           }
         ]
       }
@@ -2580,6 +2697,14 @@
                 }
               }
             ]
+          },
+          {
+            "label": "Specific",
+            "notes": {
+              "scouters": 0,
+              "defense_starred": false,
+              "categories": []
+            }
           }
         ]
       }

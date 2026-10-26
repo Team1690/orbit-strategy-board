@@ -5,6 +5,7 @@ import { packetLineup } from "./reassign";
 import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
 import { matchEventKey } from "./sync";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
+import { textDirection, type TextDirection } from "./text-direction";
 
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
@@ -86,6 +87,36 @@ export interface StatsGrid {
   teams: Array<StatsTeamGrid | null>;
 }
 
+export interface StatsNoteCategory {
+  label: string;
+  stars: number | null;
+  // more than one rating went into the stars
+  average: boolean;
+  latest: string;
+  direction: TextDirection;
+  // "+N more notes" - null when the latest is the only one
+  more: string | null;
+}
+
+export interface StatsNotes {
+  // "N scouters" - null when one scouter or none wrote
+  scouters: string | null;
+  defenseStarred: boolean;
+  categories: StatsNoteCategory[];
+}
+
+export interface StatsCard {
+  // headed like the team's column in the tables
+  column: StatsColumn;
+  // null when the team has no Team Stats
+  notes: StatsNotes | null;
+}
+
+export interface StatsCardRow {
+  alliance: AllianceColor;
+  cards: StatsCard[];
+}
+
 export interface StatsStage {
   label: string;
   chosen: boolean;
@@ -94,6 +125,8 @@ export interface StatsStage {
   rows: StatsRow[];
   // drawn below the Stage's table
   grids: StatsGrid[];
+  // a Stage of notes draws a card per team instead of a table
+  cardRows: StatsCardRow[];
   // listed below the table - only Pit has any
   faults: StatsTeamFaults[];
 }
@@ -214,6 +247,53 @@ function stageGrids(teamStages: Array<PublishedStage | undefined>, columns: Stat
   });
 }
 
+function notesIn(payload: JsonValue | undefined, label: string): Record<string, unknown> | null {
+  if (!isObject(payload) || !Array.isArray(payload.stages)) return null;
+  const stage = payload.stages.find((candidate) => isObject(candidate) && candidate.label === label);
+  return isObject(stage) && isObject(stage.notes) ? stage.notes : null;
+}
+
+function count(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function moreNotes(older: number): string | null {
+  return older > 0 ? `+${older} more ${older === 1 ? "note" : "notes"}` : null;
+}
+
+function noteCategories(categories: unknown): StatsNoteCategory[] {
+  if (!Array.isArray(categories)) return [];
+  return categories.flatMap((category) => {
+    if (!isObject(category) || typeof category.label !== "string") return [];
+    const latest = typeof category.latest === "string" ? category.latest : "";
+    return [{
+      label: category.label,
+      stars: typeof category.stars === "number" ? category.stars : null,
+      average: count(category.ratings) > 1,
+      latest,
+      direction: textDirection(latest),
+      more: moreNotes(count(category.older)),
+    }];
+  });
+}
+
+function stageNotes(notes: Record<string, unknown> | null): StatsNotes {
+  const scouters = count(notes?.scouters);
+  return {
+    scouters: scouters > 1 ? `${scouters} scouters` : null,
+    defenseStarred: notes?.defense_starred === true,
+    categories: noteCategories(notes?.categories),
+  };
+}
+
+// grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up in its row
+function cardRows(cards: StatsCard[]): StatsCardRow[] {
+  return (["red", "blue"] as const).flatMap((alliance) => {
+    const row = cards.filter((card) => card.column.alliance === alliance);
+    return row.length ? [{ alliance, cards: row }] : [];
+  });
+}
+
 function estimatedPoints(payload: JsonValue | undefined): number | null {
   return isObject(payload) && typeof payload.estimated_points === "number" ? payload.estimated_points : null;
 }
@@ -302,8 +382,10 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
       };
     });
     const totals = teamStages.some((stage) => stage?.total !== undefined) ? allianceSums(columns, teamStages.map((stage) => stage?.total ?? null)) : null;
+    const notes = teams.map(({ payload }) => notesIn(payload, label));
+    const cards = columns.map((column, index) => ({ column, notes: column.noData ? null : stageNotes(notes[index]) }));
     // the first Stage is Pit - the board never goes by a Stage's label
-    return { label, chosen: label === chosen, totals, rows, grids, faults: label === labels[0] ? faults : [] };
+    return { label, chosen: label === chosen, totals, rows, grids, cardRows: notes.some(Boolean) ? cardRows(cards) : [], faults: label === labels[0] ? faults : [] };
   });
   return {
     kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,

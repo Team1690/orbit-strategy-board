@@ -49,6 +49,7 @@ describe("Stage totals", () => {
       ["Auto", { red: "24", blue: "20" }],
       ["Tele", { red: "61", blue: "55" }],
       ["Endgame", null],
+      ["Specific", null],
     ]);
   });
 
