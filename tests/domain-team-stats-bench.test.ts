@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { parseNexusEvent, planSync, statsView, swapBenchTeam, type AllianceColor } from "$lib/domain";
+import { parseNexusEvent, planSync, statsView, swapBenchTeam } from "$lib/domain";
 import type { MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
+import { drawnBrighter } from "./team-stats-helpers";
 
 const fixture = golden as unknown as TeamStatsAnswer;
 
@@ -31,14 +32,6 @@ function tables(packet: MatchPacket) {
   return shown;
 }
 
-// the teams drawn brighter on each alliance
-function best(shown: ReturnType<typeof tables>, stageLabel: string, rowLabel: string) {
-  const row = shown.stages.find((stage) => stage.label === stageLabel)?.rows.find((candidate) => candidate.label === rowLabel);
-  if (!row) throw new Error(`no ${stageLabel} ${rowLabel} row`);
-  const teams = (alliance: AllianceColor) => shown.columns.flatMap((column, index) => column.alliance === alliance && row.cells[index]?.best ? [column.team] : []);
-  return { red: teams("red"), blue: teams("blue") };
-}
-
 describe("Bench Teams on the Stats tab", () => {
   it("shows each alliance's Bench Team as a dimmed column right after its alliance's Stations", () => {
     expect(tables(synced(playoff1)).columns.map(({ placeName, team, bench }) => [placeName, team, bench])).toEqual([
@@ -63,8 +56,8 @@ describe("Bench Teams on the Stats tab", () => {
     const shown = tables(synced(playoff1));
 
     // 3075 has the most balls on blue and would be EPA's second number
-    expect(best(shown, "Pit", "Max Balls").blue).toEqual(["1690", "3339"]);
-    expect(best(shown, "Pit", "EPA").blue).toEqual([]);
+    expect(drawnBrighter(shown, "Pit", "Max Balls").blue).toEqual(["1690", "3339"]);
+    expect(drawnBrighter(shown, "Pit", "EPA").blue).toEqual([]);
   });
 
   it("marks a Bench Team's header with its Active Faults and Robot Tags like any other team's", () => {
@@ -122,7 +115,7 @@ describe("Best on an alliance that ties throughout", () => {
     const shown = tables(synced(quals5));
 
     // blue's three teams all have 100% and red's two numbers are both 0.0
-    expect(best(shown, "Pit", "Drive Uptime")).toEqual({ red: ["254"], blue: [] });
-    expect(best(shown, "Tele", "Avg Full Court")).toEqual({ red: [], blue: ["1690"] });
+    expect(drawnBrighter(shown, "Pit", "Drive Uptime")).toEqual({ red: ["254"], blue: [] });
+    expect(drawnBrighter(shown, "Tele", "Avg Full Court")).toEqual({ red: [], blue: ["1690"] });
   });
 });

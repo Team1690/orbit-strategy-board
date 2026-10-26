@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { newMatchPacket, statsView, type AllianceColor } from "$lib/domain";
+import { newMatchPacket, statsView } from "$lib/domain";
 import type { Alliance, JsonObject, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
+import { drawnBrighter } from "./team-stats-helpers";
 
 const fixture = golden as unknown as TeamStatsAnswer;
 
@@ -13,14 +14,6 @@ function tables({ red = ["254", "4590", "2230"], blue = ["1690", "1657", "3339"]
   const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false, now: 0 });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
-}
-
-// the teams drawn brighter on each alliance
-function best(shown: ReturnType<typeof tables>, stageLabel: string, rowLabel: string) {
-  const row = shown.stages.find((stage) => stage.label === stageLabel)?.rows.find((candidate) => candidate.label === rowLabel);
-  if (!row) throw new Error(`no ${stageLabel} ${rowLabel} row`);
-  const teams = (alliance: AllianceColor) => shown.columns.flatMap((column, index) => column.alliance === alliance && row.cells[index]?.best ? [column.team] : []);
-  return { red: teams("red"), blue: teams("blue") };
 }
 
 function withValue(team: number, stageLabel: string, rowLabel: string, value: JsonObject): TeamStatsAnswer {
@@ -63,38 +56,38 @@ describe("Stage totals", () => {
 
 describe("Best on each alliance", () => {
   it("draws the highest number brighter where higher is better", () => {
-    expect(best(tables(), "Pit", "OPR")).toEqual({ red: ["254"], blue: ["1690"] });
+    expect(drawnBrighter(tables(), "Pit", "OPR")).toEqual({ red: ["254"], blue: ["1690"] });
   });
 
   it("draws the lowest number brighter where lower is better", () => {
-    expect(best(tables({ red: ["2230", "3075", "5654"] }), "Pit", "Stopped").red).toEqual(["3075"]);
+    expect(drawnBrighter(tables({ red: ["2230", "3075", "5654"] }), "Pit", "Stopped").red).toEqual(["3075"]);
   });
 
   it("draws tied numbers brighter together", () => {
-    expect(best(tables(), "Pit", "Max Balls")).toEqual({ red: ["254"], blue: ["1690", "3339"] });
+    expect(drawnBrighter(tables(), "Pit", "Max Balls")).toEqual({ red: ["254"], blue: ["1690", "3339"] });
   });
 
   it("draws nothing brighter on an alliance until two of its teams have a number", () => {
     const shown = tables();
 
-    expect(best(shown, "Pit", "EPA")).toEqual({ red: [], blue: [] });
-    expect(best(shown, "Pit", "BPS")).toEqual({ red: ["254"], blue: ["1690"] });
+    expect(drawnBrighter(shown, "Pit", "EPA")).toEqual({ red: [], blue: [] });
+    expect(drawnBrighter(shown, "Pit", "BPS")).toEqual({ red: ["254"], blue: ["1690"] });
   });
 
   it("leaves a row plain where neither way is better", () => {
-    expect(best(tables(), "Pit", "Weight")).toEqual({ red: [], blue: [] });
+    expect(drawnBrighter(tables(), "Pit", "Weight")).toEqual({ red: [], blue: [] });
   });
 
   it("never draws a value of a kind the board can't draw brighter", () => {
     const answer = withValue(1690, "Pit", "OPR", { kind: "sparkline", text: "42.5", raw: 42.5, points: [38.1, 42.5] });
 
-    expect(best(tables({ answer }), "Pit", "OPR").blue).toEqual(["3339"]);
+    expect(drawnBrighter(tables({ answer }), "Pit", "OPR").blue).toEqual(["3339"]);
   });
 
   it("never draws a value it shows as a dash brighter, even one with a number behind it", () => {
     const shown = tables({ answer: withValue(1690, "Pit", "OPR", { kind: "text", raw: 99 }) });
 
     expect(shown.stages[0].rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
-    expect(best(shown, "Pit", "OPR").blue).toEqual(["3339"]);
+    expect(drawnBrighter(shown, "Pit", "OPR").blue).toEqual(["3339"]);
   });
 });
