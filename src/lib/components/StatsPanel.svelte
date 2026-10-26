@@ -13,25 +13,51 @@
   let { packet }: { packet: MatchPacket } = $props();
 
   const ALLIANCES = ["red", "blue"] as const;
+  const REFRESH_MS = 60_000;
+  const CLOCK_MS = 15_000;
 
   let lastFetch = $state.raw<TeamStatsFetch | null>(null);
   let chosenStage = $state(lastStage);
   let explained = $state<string | null>(null);
+  let now = $state(Date.now());
+  let requested = 0;
+  let answered = 0;
 
-  const view = $derived(statsView({ lastFetch, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten, now: Date.now() }));
+  const view = $derived(statsView({ lastFetch, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten, now }));
   const stage = $derived(view.kind === "stats" ? view.stages.find((candidate) => candidate.chosen) : undefined);
 
   function choose(label: string) {
     chosenStage = lastStage = label;
   }
 
+  // a request can hang on a dead connection while a newer one goes through - the newer answer wins
+  async function refresh() {
+    const request = ++requested;
+    const result = await native.teamStats.fetch().catch((error: unknown): TeamStatsFetch => ({ kind: "unreachable", detail: error instanceof Error ? error.message : String(error), cached: null }));
+    if (request < answered) return;
+    answered = request;
+    lastFetch = result;
+    now = Date.now();
+  }
+
   onMount(() => {
-    native.teamStats.fetch().then(
-      (result) => (lastFetch = result),
-      (error: unknown) => (lastFetch = { kind: "unreachable", detail: error instanceof Error ? error.message : String(error), cached: null }),
-    );
+    // the numbers the tablet kept go up at once - on bad wi-fi the fetch can take its whole timeout
+    native.teamStats.cached().then((cached) => {
+      if (cached && !lastFetch) lastFetch = { kind: "ok", answer: cached.answer };
+    }, () => undefined);
+    void refresh();
+    const refresher = window.setInterval(() => {
+      if (document.visibilityState !== "hidden") void refresh();
+    }, REFRESH_MS);
+    const clock = window.setInterval(() => (now = Date.now()), CLOCK_MS);
+    return () => {
+      window.clearInterval(refresher);
+      window.clearInterval(clock);
+    };
   });
 </script>
+
+<svelte:window ononline={() => void refresh()} />
 
 <div id="stats-panel" class="flex flex-col flex-1 min-h-0">
   {#if view.kind === "loading"}
@@ -68,6 +94,13 @@
         <button class="stage-tab" class:chosen={candidate.chosen} role="tab" aria-selected={candidate.chosen} onclick={() => choose(candidate.label)}>{candidate.label}</button>
       {/each}
     </div>
+    <p id="stats-freshness" class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 md:px-6 pt-3 text-sm" role="status">
+      {#if view.freshness.unreachable}
+        <span class="unreachable"><i class="fas fa-circle-exclamation" aria-hidden="true"></i> {view.freshness.unreachable.title}</span>
+        <span class="unreachable-detail">{view.freshness.unreachable.detail}</span>
+      {/if}
+      <span class="confirmed"><i class="fa-regular fa-clock" aria-hidden="true"></i> {view.freshness.confirmed}</span>
+    </p>
     <div class="flex-1 min-h-0 overflow-auto touch-pan-x touch-pan-y p-4 md:p-6">
       <table id="stats-table">
         <thead>
@@ -165,6 +198,10 @@
   }
   .stage-tab:hover { background: #252525; color: #e8e8e8; }
   .stage-tab.chosen { background: #ebebeb; border-color: #ebebeb; color: #0d0d0d; }
+
+  #stats-freshness .confirmed { color: #999; }
+  #stats-freshness .unreachable { color: #e89090; font-weight: 600; }
+  #stats-freshness .unreachable-detail { color: #777; }
 
   #stats-table {
     border-collapse: separate;
