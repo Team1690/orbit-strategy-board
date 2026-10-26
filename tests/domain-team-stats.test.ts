@@ -49,13 +49,13 @@ function stage(shown: ReturnType<typeof tables>, label: string) {
 
 describe("Stats tab", () => {
   it("shows the Match's teams in Station order", () => {
-    expect(tables(quals5()).columns.map(({ stationName, team }) => [stationName, team])).toEqual([
+    expect(tables(quals5()).columns.map(({ placeName, team }) => [placeName, team])).toEqual([
       ["Red 1", "254"], ["Red 2", "4590"], ["Red 3", "2230"], ["Blue 1", "1690"], ["Blue 2", "1657"], ["Blue 3", "3339"],
     ]);
   });
 
   it("leaves out a Station with no team", () => {
-    expect(tables(quals5(["254", " ", "2230"], ["1690", "", "3339"])).columns.map((column) => column.stationName)).toEqual(["Red 1", "Red 3", "Blue 1", "Blue 3"]);
+    expect(tables(quals5(["254", " ", "2230"], ["1690", "", "3339"])).columns.map((column) => column.placeName)).toEqual(["Red 1", "Red 3", "Blue 1", "Blue 3"]);
   });
 
   it("heads each column with its team number in its Team Color", () => {

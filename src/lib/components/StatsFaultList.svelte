@@ -7,11 +7,11 @@
 <section id="stats-faults" aria-labelledby="stats-faults-title">
   <h3 id="stats-faults-title"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>Active Faults</h3>
   <div class="fault-teams">
-    {#each teams as { column, faults } (column.station)}
+    {#each teams as { column, faults } (column.place)}
       <div class="fault-team" class:bench={column.bench}>
         <div class="fault-team-head">
           <span class="team-number" style:color={column.color}>{column.team}</span>
-          <span class="station {column.alliance}">{column.stationName}</span>
+          <span class="place {column.alliance}">{column.placeName}</span>
         </div>
         <ul>
           {#each faults as fault}
@@ -72,12 +72,12 @@
     font-size: 1.15rem;
     font-weight: 700;
   }
-  .station {
+  .place {
     font-size: 0.8rem;
     font-weight: 600;
   }
-  .station.red { color: #c97070; }
-  .station.blue { color: #6090c9; }
+  .place.red { color: #c97070; }
+  .place.blue { color: #6090c9; }
   ul {
     display: flex;
     flex-direction: column;

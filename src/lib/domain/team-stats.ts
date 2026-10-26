@@ -24,10 +24,12 @@ export interface StatsViewInput {
   now: number;
 }
 
+// a Bench Team is in no Station - so its column sits at its alliance's bench
+export type StatsPlace = StationKey | "redBench" | "blueBench";
+
 export interface StatsColumn {
-  // a Bench Team plays in no Station - its column goes by its alliance's bench instead
-  station: StationKey | "redBench" | "blueBench";
-  stationName: string;
+  place: StatsPlace;
+  placeName: string;
   alliance: AllianceColor;
   team: string;
   color: string;
@@ -315,14 +317,14 @@ function cardRows(cards: StatsCard[]): StatsCardRow[] {
   });
 }
 
-const BENCHES = { red: { station: "redBench", stationName: "Red Bench" }, blue: { station: "blueBench", stationName: "Blue Bench" } } as const;
+const BENCHES = { red: { place: "redBench", placeName: "Red Bench" }, blue: { place: "blueBench", placeName: "Blue Bench" } } as const;
 
 // the Match's teams in column order - each alliance's Stations then its Bench Team
 function columnTeams(packet: MatchPacket) {
   const lineup = packetLineup(packet);
   const bench = readExtras(packet).bench ?? {};
   return (["red", "blue"] as const).flatMap((alliance) => [
-    ...ALLIANCE_STATIONS[alliance].map((station) => ({ station, stationName: STATION_NAMES[station], alliance, team: lineup[station].trim(), bench: false })),
+    ...ALLIANCE_STATIONS[alliance].map((station) => ({ place: station, placeName: STATION_NAMES[station], alliance, team: lineup[station].trim(), bench: false })),
     { ...BENCHES[alliance], alliance, team: bench[alliance]?.trim() ?? "", bench: true },
   ].filter(({ team }) => team));
 }
@@ -407,10 +409,10 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
   }
   const published = new Map(answer.team_stats.map((team) => [String(team.team_number), team.payload]));
-  const teams = columnTeams(packet).map((place) => ({ ...place, payload: published.get(teamNumberKey(place.team) ?? "") }));
+  const teams = columnTeams(packet).map((column) => ({ ...column, payload: published.get(teamNumberKey(column.team) ?? "") }));
   const faultsByTeam = teams.map(({ payload }) => publishedFaults(payload));
-  const columns = teams.map(({ station, stationName, alliance, team, bench, payload }, index) => ({
-    station, stationName, alliance,
+  const columns = teams.map(({ place, placeName, alliance, team, bench, payload }, index) => ({
+    place, placeName, alliance,
     team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),
     activeFaults: faultsByTeam[index].length, robotTags: publishedTags(payload), bench,
   }));

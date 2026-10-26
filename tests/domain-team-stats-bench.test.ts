@@ -41,7 +41,7 @@ function best(shown: ReturnType<typeof tables>, stageLabel: string, rowLabel: st
 
 describe("Bench Teams on the Stats tab", () => {
   it("shows each alliance's Bench Team as a dimmed column right after its alliance's Stations", () => {
-    expect(tables(synced(playoff1)).columns.map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+    expect(tables(synced(playoff1)).columns.map(({ placeName, team, bench }) => [placeName, team, bench])).toEqual([
       ["Red 1", "254", false], ["Red 2", "4590", false], ["Red 3", "2230", false], ["Red Bench", "5654", true],
       ["Blue 1", "1690", false], ["Blue 2", "1657", false], ["Blue 3", "3339", false], ["Blue Bench", "3075", true],
     ]);
@@ -77,7 +77,7 @@ describe("Bench Teams on the Stats tab", () => {
   it("lists a Bench Team's Active Faults on Pit after its alliance's Station teams", () => {
     const [pit] = tables(synced(playoff1)).stages;
 
-    expect(pit.faults.map(({ column, faults }) => [column.stationName, column.team, faults.map((fault) => fault.message)])).toEqual([
+    expect(pit.faults.map(({ column, faults }) => [column.placeName, column.team, faults.map((fault) => fault.message)])).toEqual([
       ["Red 3", "2230", ["Robot dead on field"]],
       ["Red Bench", "5654", ["Shooter wheel loose"]],
       ["Blue 1", "1690", ["Lost comms", "Intake jams on the bump"]],
@@ -96,7 +96,7 @@ describe("Bench Teams on the Stats tab", () => {
   it("follows a swap - the Bench Team swapped in counts and the team it displaced is dimmed on the bench", () => {
     const shown = tables(swapBenchTeam(synced(playoff1), "blueTwo"));
 
-    expect(shown.columns.filter((column) => column.alliance === "blue").map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+    expect(shown.columns.filter((column) => column.alliance === "blue").map(({ placeName, team, bench }) => [placeName, team, bench])).toEqual([
       ["Blue 1", "1690", false], ["Blue 2", "3075", false], ["Blue 3", "3339", false], ["Blue Bench", "1657", true],
     ]);
     expect(shown.estimatedScores.blue).toBe("171");
@@ -105,13 +105,13 @@ describe("Bench Teams on the Stats tab", () => {
   it("follows a Lineup change the schedule reports", () => {
     const [changed] = planSync({ packets: [synced(playoff1)], schedule: schedule({ ...playoff1, redTeams: ["5654", "254", "2230", "4590"] }), newId: () => "unused" }).update;
 
-    expect(tables(changed).columns.filter((column) => column.alliance === "red").map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+    expect(tables(changed).columns.filter((column) => column.alliance === "red").map(({ placeName, team, bench }) => [placeName, team, bench])).toEqual([
       ["Red 1", "5654", false], ["Red 2", "254", false], ["Red 3", "2230", false], ["Red Bench", "4590", true],
     ]);
   });
 
   it("shows no Bench Team in a qualification Match", () => {
-    expect(tables(synced(quals5)).columns.map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+    expect(tables(synced(quals5)).columns.map(({ placeName, team, bench }) => [placeName, team, bench])).toEqual([
       ["Red 1", "254", false], ["Red 2", "4590", false], ["Red 3", "2230", false], ["Blue 1", "1690", false], ["Blue 2", "1657", false], ["Blue 3", "3339", false],
     ]);
   });

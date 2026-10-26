@@ -65,8 +65,8 @@
 
 {#snippet teamHeader(column: StatsColumn)}
   <span class="team-number" style:color={column.color}>{column.team}</span>
-  <span class="station">
-    {column.stationName}
+  <span class="place">
+    {column.placeName}
     {#if column.ourTeam}
       <i class="fas fa-star our-team" title="Our Team" aria-label="Our Team"></i>
     {/if}
@@ -124,7 +124,7 @@
         <div id="stats-cards">
           {#each stage.cardRows as cardRow (cardRow.alliance)}
             <div class="card-row">
-              {#each cardRow.cards as card (card.column.station)}
+              {#each cardRow.cards as card (card.column.place)}
                 <article class="team-card" class:bench={card.column.bench}>
                   <header class="team-head {card.column.alliance}">{@render teamHeader(card.column)}</header>
                   {#if card.notes}
@@ -176,7 +176,7 @@
         <thead>
           <tr>
             <th class="row-label" scope="col"><span class="sr-only">Row</span></th>
-            {#each view.columns as column (column.station)}
+            {#each view.columns as column (column.place)}
               <th class="team-head {column.alliance}" class:bench={column.bench} scope="col">{@render teamHeader(column)}</th>
             {/each}
           </tr>
@@ -208,7 +208,7 @@
                   {/if}
                 </span>
               </th>
-              {#each row.cells as cell, index (view.columns[index].station)}
+              {#each row.cells as cell, index (view.columns[index].place)}
                 <td class={view.columns[index].alliance} class:bench={view.columns[index].bench} class:empty={cell === null} class:best={cell?.best}>
                   {#if cell?.mark}
                     <i class="fas {MARKS[cell.mark]}" aria-hidden="true"></i>
@@ -243,13 +243,13 @@
           <div class="grid-alliances">
             {#each ALLIANCES.filter((alliance) => view.columns.some((column) => column.alliance === alliance)) as alliance (alliance)}
               <div class="grid-alliance">
-                {#each grid.teams as team, index (view.columns[index].station)}
+                {#each grid.teams as team, index (view.columns[index].place)}
                   {@const column = view.columns[index]}
                   {#if column.alliance === alliance}
                     <figure class="grid-team {alliance}" class:bench={column.bench}>
                       <figcaption>
                         <span class="grid-team-number" style:color={column.color}>{column.team}</span>
-                        <span class="station">{column.stationName}</span>
+                        <span class="place">{column.placeName}</span>
                       </figcaption>
                       {#if team}
                         <table class="small-grid">
@@ -379,13 +379,13 @@
     font-size: 1.35rem;
     font-weight: 700;
   }
-  .station {
+  .place {
     color: #777;
     font-size: 0.8rem;
     font-weight: 600;
   }
-  .team-head.red .station { color: #c97070; }
-  .team-head.blue .station { color: #6090c9; }
+  .team-head.red .place { color: #c97070; }
+  .team-head.blue .place { color: #6090c9; }
   .our-team { margin-left: 0.25rem; color: #facc15; }
   .no-data {
     margin-top: 0.15rem;
@@ -484,8 +484,8 @@
     font-size: 1.1rem;
     font-weight: 700;
   }
-  .grid-team.red .station { color: #c97070; }
-  .grid-team.blue .station { color: #6090c9; }
+  .grid-team.red .place { color: #c97070; }
+  .grid-team.blue .place { color: #6090c9; }
   .small-grid {
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
