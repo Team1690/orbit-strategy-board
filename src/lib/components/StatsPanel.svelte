@@ -28,7 +28,7 @@
   onMount(() => {
     native.teamStats.fetch().then(
       (result) => (lastFetch = result),
-      (error: unknown) => (lastFetch = { kind: "unreachable", detail: error instanceof Error ? error.message : String(error) }),
+      (error: unknown) => (lastFetch = { kind: "unreachable", detail: error instanceof Error ? error.message : String(error), cached: null }),
     );
   });
 </script>

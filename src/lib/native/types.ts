@@ -110,10 +110,17 @@ export interface TeamStatsAnswer {
   team_stats_confirmed: TeamStatsConfirmed[];
 }
 
+// the last answer that came through - kept on the tablet so the stats tab works offline
+export interface CachedTeamStats {
+  answer: TeamStatsAnswer;
+  // Date.now() when it came through
+  fetchedAt: number;
+}
+
 export type TeamStatsFetch =
   | { kind: "ok"; answer: TeamStatsAnswer }
   | { kind: "not-set-up" }
-  | { kind: "unreachable"; detail: string };
+  | { kind: "unreachable"; detail: string; cached: CachedTeamStats | null };
 
 export interface QrReceivingProgress {
   status: "receiving";

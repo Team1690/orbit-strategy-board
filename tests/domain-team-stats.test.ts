@@ -147,7 +147,7 @@ describe("Stats tab", () => {
   });
 
   it("says the database can't be reached when the fetch failed", () => {
-    expect(view(quals5(), { lastFetch: { kind: "unreachable", detail: "fetch failed" } })).toEqual({
+    expect(view(quals5(), { lastFetch: { kind: "unreachable", detail: "fetch failed", cached: null } })).toEqual({
       kind: "notice",
       title: "Can't reach the database",
       detail: "fetch failed",
