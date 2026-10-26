@@ -100,8 +100,8 @@ describe("Specific Stage", () => {
       (notesOf(copy, 1690).categories as JsonObject[])[2].latest = "L3 בכל משחק";
     });
 
-    expect(notesOn(tables(quals5()), "1690").categories.map((category) => category.direction)).toEqual(["ltr", "rtl", "ltr"]);
-    expect(notesOn(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").categories[2].direction).toBe("rtl");
+    expect(notesOn(tables(quals5()), "1690").categories.map((category) => category.dir)).toEqual(["ltr", "rtl", "ltr"]);
+    expect(notesOn(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").categories[2].dir).toBe("rtl");
   });
 
   it("gives a team without Team Stats a card with no notes, headed No data like its column", () => {
@@ -117,9 +117,9 @@ describe("Specific Stage", () => {
   it("shows stars nobody wrote a note under with no note, and a note nobody gave stars to with no stars", () => {
     const shown = tables(quals5());
 
-    expect(notesOn(shown, "3339").categories).toEqual([{ label: "Driving", stars: 3, average: false, latest: "", direction: "ltr", more: null }]);
+    expect(notesOn(shown, "3339").categories).toEqual([{ label: "Driving", stars: 3, average: false, latest: "", dir: "ltr", more: null }]);
     expect(notesOn(shown, "2230").categories).toEqual([
-      { label: "General", stars: null, average: false, latest: "Broke down in Q2, fixed for Q4", direction: "ltr", more: null },
+      { label: "General", stars: null, average: false, latest: "Broke down in Q2, fixed for Q4", dir: "ltr", more: null },
     ]);
   });
 

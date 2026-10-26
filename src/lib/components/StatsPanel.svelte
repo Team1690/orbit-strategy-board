@@ -155,7 +155,7 @@
                             {/if}
                           </h3>
                           {#if category.latest}
-                            <p class="latest" dir={category.direction}>{category.latest}</p>
+                            <p class="latest" dir={category.dir}>{category.latest}</p>
                           {/if}
                           {#if category.more}
                             <p class="more">{category.more}</p>

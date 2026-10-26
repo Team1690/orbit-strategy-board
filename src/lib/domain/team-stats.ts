@@ -104,7 +104,7 @@ export interface StatsNoteCategory {
   // more than one rating went into the stars
   average: boolean;
   latest: string;
-  direction: TextDirection;
+  dir: TextDirection;
   // "+N more notes" - null when the latest is the only one
   more: string | null;
 }
@@ -294,7 +294,7 @@ function noteCategories(categories: unknown): StatsNoteCategory[] {
       stars: typeof category.stars === "number" ? category.stars : null,
       average: count(category.ratings) > 1,
       latest,
-      direction: textDirection(latest),
+      dir: textDirection(latest),
       more: moreNotes(count(category.older)),
     }];
   });
@@ -334,7 +334,7 @@ function estimatedPoints(payload: JsonValue | undefined): number | null {
 }
 
 // the teams whose numbers count for their alliance - every sum and every best
-function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number[] {
+function stationIndexes(columns: StatsColumn[], alliance: AllianceColor): number[] {
   return columns.flatMap((column, index) => column.alliance === alliance && !column.bench ? [index] : []);
 }
 
@@ -348,7 +348,7 @@ function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | u
   if (!direction) return new Set();
   const pick = direction === "higher" ? Math.max : Math.min;
   return new Set((["red", "blue"] as const).flatMap((alliance) => {
-    const numbers = stationColumns(columns, alliance).flatMap((index) => {
+    const numbers = stationIndexes(columns, alliance).flatMap((index) => {
       const raw = rawNumber(rows[index]?.value);
       return raw === null ? [] : [{ index, raw }];
     });
@@ -363,7 +363,7 @@ function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | u
 
 function allianceSums(columns: StatsColumn[], values: Array<number | null>): Record<AllianceColor, string> {
   const sum = (alliance: AllianceColor) => {
-    const numbers = stationColumns(columns, alliance).flatMap((index) => values[index] ?? []);
+    const numbers = stationIndexes(columns, alliance).flatMap((index) => values[index] ?? []);
     return numbers.length ? numbers.reduce((total, value) => total + value).toFixed(0) : "-";
   };
   return { red: sum("red"), blue: sum("blue") };
