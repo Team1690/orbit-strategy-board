@@ -24,6 +24,7 @@ export interface StatsColumn {
   color: string;
   ourTeam: boolean;
   noData: boolean;
+  activeFaults: number;
 }
 
 export interface StatsCell {
@@ -71,6 +72,11 @@ function publishedStages(payload: JsonValue | undefined): PublishedStage[] {
   return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label, rows: publishedRows(stage.rows) }] : []);
 }
 
+// Team Stats published before faults existed have no such key - the same as none
+function publishedFaultCount(payload: JsonValue | undefined): number {
+  return isObject(payload) && Array.isArray(payload.active_faults) ? payload.active_faults.length : 0;
+}
+
 function tooNew(payload: JsonValue | undefined): boolean {
   return isObject(payload) && typeof payload.version === "number" && payload.version > TEAM_STATS_FORMAT_VERSION;
 }
@@ -102,6 +108,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   const columns = teams.map(({ station, team, payload }) => ({
     station, stationName: STATION_NAMES[station], alliance: stationAlliance(station),
     team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),
+    activeFaults: publishedFaultCount(payload),
   }));
   const stagesByTeam = teams.map(({ payload }) => publishedStages(payload));
   const labels = unique(stagesByTeam.flatMap((stages) => stages.map((stage) => stage.label)));

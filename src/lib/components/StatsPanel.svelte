@@ -9,6 +9,7 @@
   import { native } from "$lib/native/api";
   import type { MatchPacket, TeamStatsFetch } from "$lib/native/types";
   import { boardConfig } from "$lib/stores/config.svelte";
+  import StatsTeamMarks from "./StatsTeamMarks.svelte";
 
   let { packet }: { packet: MatchPacket } = $props();
 
@@ -68,6 +69,7 @@
                     <i class="fas fa-star our-team" title="Our Team" aria-label="Our Team"></i>
                   {/if}
                 </span>
+                <StatsTeamMarks {column} />
                 {#if column.noData}
                   <span class="no-data">No data</span>
                 {/if}
