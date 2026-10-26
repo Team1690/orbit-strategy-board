@@ -120,17 +120,18 @@ describe("Stats tab", () => {
     expect(pit.rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
   });
 
-  it("says the board needs updating when a team in the Match has Team Stats in a newer format", () => {
+  it("says the board needs updating when any team has Team Stats in a newer format, in the Match or not", () => {
     const answer = edited((copy) => {
       payloadOf(copy, 1657).version = 2;
     });
-
-    expect(view(quals5(), { lastFetch: { kind: "ok", answer } })).toEqual({
+    const needsUpdate = {
       kind: "notice",
       title: "This board needs an update",
       detail: "The Scouting App publishes Team Stats in a newer format than this board can read.",
-    });
-    expect(view(quals5(["254", "4590", "2230"], ["1690", "3075", "3339"]), { lastFetch: { kind: "ok", answer } }).kind).toBe("stats");
+    };
+
+    expect(view(quals5(), { lastFetch: { kind: "ok", answer } })).toEqual(needsUpdate);
+    expect(view(quals5(["254", "4590", "2230"], ["1690", "3075", "3339"]), { lastFetch: { kind: "ok", answer } })).toEqual(needsUpdate);
   });
 
   it("says so while the Team Stats load", () => {

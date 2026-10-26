@@ -398,11 +398,11 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
       ? { kind: "notice", title: UNREACHABLE, detail: lastFetch.detail }
       : { kind: "notice", title: "No Team Stats have been published yet", detail: "They show up here once a Synced Scouting App device at Strategy role or above publishes them." };
   }
-  const published = new Map(answer.team_stats.map((team) => [String(team.team_number), team.payload]));
-  const teams = columnTeams(packet).map((place) => ({ ...place, payload: published.get(teamNumberKey(place.team) ?? "") }));
-  if (teams.some(({ payload }) => tooNew(payload))) {
+  if (answer.team_stats.some(({ payload }) => tooNew(payload))) {
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
   }
+  const published = new Map(answer.team_stats.map((team) => [String(team.team_number), team.payload]));
+  const teams = columnTeams(packet).map((place) => ({ ...place, payload: published.get(teamNumberKey(place.team) ?? "") }));
   const faultsByTeam = teams.map(({ payload }) => publishedFaults(payload));
   const columns = teams.map(({ station, stationName, alliance, team, bench, payload }, index) => ({
     station, stationName, alliance,
