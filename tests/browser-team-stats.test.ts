@@ -119,6 +119,20 @@ describe("Team Stats cache", () => {
     });
   });
 
+  it("returns the last Team Stats that came through without asking the database while the tablet is offline", async () => {
+    buildWith("board-token");
+    await fetchedAt(atTwo, { data: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+    const fetch = databaseAnswers({ data: { team_stats: [teamStats(254)], team_stats_confirmed: [] } });
+    vi.stubGlobal("navigator", { onLine: false });
+
+    expect(await fetchTeamStats()).toEqual({
+      kind: "unreachable",
+      detail: "You're offline.",
+      cached: { answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] }, fetchedAt: atTwo },
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("can be read before the next fetch answers, once a fetch has come through", async () => {
     buildWith("board-token");
     const cached = () => browserInvoke<CachedTeamStats | null>("team_stats_cached");

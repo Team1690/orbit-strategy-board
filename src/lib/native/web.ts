@@ -209,6 +209,7 @@ async function unreachableTeamStats(detail: string): Promise<TeamStatsFetch> {
 
 async function fetchTeamStats(): Promise<TeamStatsFetch> {
   if (!__HASURA_HTTP_LINK__ || !__HASURA_BOARD_TOKEN__) return { kind: "not-set-up" };
+  if (isOffline()) return unreachableTeamStats("You're offline.");
   try {
     const response = await fetch(__HASURA_HTTP_LINK__, {
       method: "POST",
