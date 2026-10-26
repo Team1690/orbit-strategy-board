@@ -90,4 +90,11 @@ describe("Best on each alliance", () => {
 
     expect(best(tables({ answer }), "Pit", "OPR").blue).toEqual(["3339"]);
   });
+
+  it("never draws a value it shows as a dash brighter, even one with a number behind it", () => {
+    const shown = tables({ answer: withValue(1690, "Pit", "OPR", { kind: "text", raw: 99 }) });
+
+    expect(shown.stages[0].rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
+    expect(best(shown, "Pit", "OPR").blue).toEqual(["3339"]);
+  });
 });

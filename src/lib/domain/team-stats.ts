@@ -223,9 +223,14 @@ function yesNoCell(answer: unknown): StatsCell | null {
   }
 }
 
+// the one reading of a text value that both the cell and the best go by
+function isDrawnText(value: unknown): value is { kind: "text"; text: string; raw?: unknown } {
+  return isObject(value) && value.kind === "text" && typeof value.text === "string";
+}
+
 // a new kind of value doesn't bump the format version - so one this board can't draw shows as a dash
 function cell(value: JsonValue): StatsCell {
-  if (isObject(value) && value.kind === "text" && typeof value.text === "string") return { text: value.text };
+  if (isDrawnText(value)) return { text: value.text };
   if (isObject(value) && value.kind === "yes_no") return yesNoCell(value.answer) ?? { text: "-" };
   return { text: "-" };
 }
@@ -331,9 +336,9 @@ function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number
   return columns.flatMap((column, index) => column.alliance === alliance && !column.bench ? [index] : []);
 }
 
-// a kind this board can't draw shows a dash - so its number can't be the best
+// a value drawn as a dash - a kind this board can't draw or a text with none to show - can't be the best
 function rawNumber(value: JsonValue | undefined): number | null {
-  return isObject(value) && value.kind === "text" && typeof value.raw === "number" ? value.raw : null;
+  return isDrawnText(value) && typeof value.raw === "number" ? value.raw : null;
 }
 
 function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | undefined>): Set<number> {
