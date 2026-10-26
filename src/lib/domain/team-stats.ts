@@ -142,17 +142,22 @@ export interface StatsStage {
   faults: StatsTeamFaults[];
 }
 
+export interface StatsNotice {
+  title: string;
+  detail: string;
+}
+
 export interface StatsFreshness {
   // how long ago the numbers were Confirmed
   confirmed: string;
   // set when the last fetch failed and the numbers are the ones the tablet kept
-  unreachable: { title: string; detail: string } | null;
+  unreachable: StatsNotice | null;
 }
 
 export type StatsView =
   | { kind: "loading" }
-  | { kind: "notice"; title: string; detail: string | null }
-  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null; freshness: StatsFreshness };
+  | ({ kind: "notice" } & StatsNotice)
+  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: StatsNotice | null; freshness: StatsFreshness };
 
 interface PublishedRow {
   label: string;
@@ -371,7 +376,7 @@ function allianceSums(columns: StatsColumn[], values: Array<number | null>): Rec
 
 // the last event's rows can linger after the scouting app moves on - so go by the numbers on screen
 // and by every row when the match's teams have none - the banner then explains their no data columns
-function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer) {
+function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer): StatsNotice | null {
   const eventKey = matchEventKey(packet);
   const rows = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
   const shown = teams.flatMap((team) => rows.get(teamNumberKey(team) ?? "") ?? []);
