@@ -51,6 +51,12 @@
       {/if}
     </div>
   {:else}
+    {#if view.eventBanner}
+      <div id="stats-event-banner" class="flex items-center gap-3 mx-4 md:mx-6 mt-4 px-4 py-2.5" role="status">
+        <i class="fas fa-triangle-exclamation text-[#eab308]" aria-hidden="true"></i>
+        <p><span class="font-bold text-[#e8e8e8]">{view.eventBanner.title}</span> <span class="text-[#999]">{view.eventBanner.detail}</span></p>
+      </div>
+    {/if}
     <div id="stats-estimated-score" class="flex items-baseline justify-center gap-3 px-4 md:px-6 pt-4">
       <span class="caption">Estimated score</span>
       <span class="score red">{view.estimatedScores.red}</span>
@@ -124,6 +130,12 @@
 </div>
 
 <style>
+  #stats-event-banner {
+    border: 1px solid #4a3c0e;
+    border-left: 4px solid #eab308;
+    border-radius: 6px;
+    background: #1a160a;
+  }
   #stats-estimated-score .caption {
     color: #777;
     font-size: 0.8rem;

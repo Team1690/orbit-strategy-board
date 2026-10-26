@@ -1,8 +1,9 @@
-import type { JsonValue, MatchPacket, TeamStatsFetch } from "$lib/native/types";
+import type { JsonValue, MatchPacket, TeamStatsAnswer, TeamStatsFetch } from "$lib/native/types";
 
 import { isObject } from "./json";
 import { packetLineup } from "./reassign";
 import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
+import { matchEventKey } from "./sync";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 
 export const TEAM_STATS_FORMAT_VERSION = 1;
@@ -50,7 +51,7 @@ export interface StatsStage {
 export type StatsView =
   | { kind: "loading" }
   | { kind: "notice"; title: string; detail: string | null }
-  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[] };
+  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null };
 
 interface PublishedRow {
   label: string;
@@ -139,6 +140,17 @@ function allianceSums(columns: StatsColumn[], values: Array<number | null>): Rec
   return { red: sum("red"), blue: sum("blue") };
 }
 
+// the last event's rows can linger after the scouting app moves on - so go by the numbers on screen
+// and by every row when the match's teams have none - the banner then explains their no data columns
+function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer) {
+  const eventKey = matchEventKey(packet);
+  const rows = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
+  const shown = teams.flatMap((team) => rows.get(teamNumberKey(team) ?? "") ?? []);
+  const events = unique((shown.length ? shown : answer.team_stats).map((row) => row.event).filter(Boolean));
+  if (eventKey === null || events.every((event) => event === eventKey)) return null;
+  return { title: `Team Stats from ${events.join(" and ")}`, detail: `This Match is from ${eventKey}.` };
+}
+
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
@@ -175,5 +187,8 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     const totals = teamStages.some((stage) => stage?.total !== undefined) ? allianceSums(columns, teamStages.map((stage) => stage?.total ?? null)) : null;
     return { label, chosen: label === chosen, totals, rows };
   });
-  return { kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages };
+  return {
+    kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
+    eventBanner: eventBanner(packet, teams.map(({ team }) => team), lastFetch.answer),
+  };
 }
