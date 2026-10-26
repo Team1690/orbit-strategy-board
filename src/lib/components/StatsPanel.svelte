@@ -49,6 +49,12 @@
       {/if}
     </div>
   {:else}
+    {#if view.eventBanner}
+      <div id="stats-event-banner" class="flex items-center gap-3 mx-4 md:mx-6 mt-4 px-4 py-2.5" role="status">
+        <i class="fas fa-triangle-exclamation text-[#eab308]" aria-hidden="true"></i>
+        <p><span class="font-bold text-[#e8e8e8]">{view.eventBanner.title}</span> <span class="text-[#999]">{view.eventBanner.detail}</span></p>
+      </div>
+    {/if}
     <div id="stats-stages" class="flex flex-wrap gap-2 px-4 md:px-6 pt-4" role="tablist" aria-label="Stages">
       {#each view.stages as candidate (candidate.label)}
         <button class="stage-tab" class:chosen={candidate.chosen} role="tab" aria-selected={candidate.chosen} onclick={() => choose(candidate.label)}>{candidate.label}</button>
@@ -105,6 +111,13 @@
 </div>
 
 <style>
+  #stats-event-banner {
+    border: 1px solid #4a3c0e;
+    border-left: 4px solid #eab308;
+    border-radius: 6px;
+    background: #1a160a;
+  }
+
   .stage-tab {
     padding: 0.45rem 1.1rem;
     border: 1px solid #2a2a2a;
