@@ -7,6 +7,17 @@
       "payload": {
         "version": 1,
         "name": "The Cheesy Poofs",
+        "active_faults": [],
+        "robot_tags": [
+          {
+            "name": "Defender",
+            "color": "#e91e63"
+          },
+          {
+            "name": "Fast climber",
+            "color": "#4caf50"
+          }
+        ],
         "estimated_points": 103.44296346927926,
         "stages": [
           {
@@ -290,6 +301,8 @@
       "payload": {
         "version": 1,
         "name": "MisCar",
+        "active_faults": [],
+        "robot_tags": [],
         "estimated_points": 16.905825885468385,
         "stages": [
           {
@@ -570,6 +583,8 @@
       "payload": {
         "version": 1,
         "name": "Hamosad",
+        "active_faults": [],
+        "robot_tags": [],
         "estimated_points": 13.333333333333334,
         "stages": [
           {
@@ -847,6 +862,30 @@
       "payload": {
         "version": 1,
         "name": "Orbit",
+        "active_faults": [
+          {
+            "message": "Lost comms",
+            "status": "Unknown",
+            "resolution": null,
+            "match": "Q1",
+            "reported_by": 2,
+            "scouters": 2
+          },
+          {
+            "message": "Intake jams on the bump",
+            "status": "In progress",
+            "resolution": "New roller tonight",
+            "match": "Q2",
+            "reported_by": null,
+            "scouters": null
+          }
+        ],
+        "robot_tags": [
+          {
+            "name": "Fast climber",
+            "color": "#4caf50"
+          }
+        ],
         "estimated_points": 62.267227620939146,
         "stages": [
           {
@@ -1130,6 +1169,22 @@
       "payload": {
         "version": 1,
         "name": "General Angels",
+        "active_faults": [
+          {
+            "message": "Robot dead on field",
+            "status": "No progress",
+            "resolution": null,
+            "match": "Q2",
+            "reported_by": null,
+            "scouters": null
+          }
+        ],
+        "robot_tags": [
+          {
+            "name": "Defender",
+            "color": "#e91e63"
+          }
+        ],
         "estimated_points": 15.1984126984127,
         "stages": [
           {
@@ -1410,6 +1465,8 @@
       "payload": {
         "version": 1,
         "name": "Ha-Dream Team",
+        "active_faults": [],
+        "robot_tags": [],
         "estimated_points": 55.44461914744934,
         "stages": [
           {
@@ -1693,6 +1750,8 @@
       "payload": {
         "version": 1,
         "name": "BumbleB",
+        "active_faults": [],
+        "robot_tags": [],
         "estimated_points": 53.009469696969695,
         "stages": [
           {
@@ -1973,6 +2032,8 @@
       "payload": {
         "version": 1,
         "name": "GreenBlitz",
+        "active_faults": [],
+        "robot_tags": [],
         "estimated_points": null,
         "stages": [
           {
@@ -2238,6 +2299,22 @@
       "payload": {
         "version": 1,
         "name": "Phoenix",
+        "active_faults": [
+          {
+            "message": "Shooter wheel loose",
+            "status": "In progress",
+            "resolution": "Tightened, needs a check",
+            "match": "Q4",
+            "reported_by": null,
+            "scouters": null
+          }
+        ],
+        "robot_tags": [
+          {
+            "name": "Watch intake",
+            "color": "#ffc107"
+          }
+        ],
         "estimated_points": 9.064814814814815,
         "stages": [
           {
