@@ -109,4 +109,21 @@ describe("Specific Stage", () => {
 
     expect([card.column.noData, card.notes]).toEqual([true, null]);
   });
+
+  it("gives a team nobody wrote about a card with nothing on it", () => {
+    expect(notesOn(tables(quals5()), "4590")).toEqual({ scouters: null, defenseStarred: false, categories: [] });
+  });
+
+  it("shows stars nobody wrote a note under with no note, and a note nobody gave stars to with no stars", () => {
+    const shown = tables(quals5());
+
+    expect(notesOn(shown, "3339").categories).toEqual([{ label: "Driving", stars: 3, average: false, latest: "", direction: "ltr", more: null }]);
+    expect(notesOn(shown, "2230").categories).toEqual([
+      { label: "General", stars: null, average: false, latest: "Broke down in Q2, fixed for Q4", direction: "ltr", more: null },
+    ]);
+  });
+
+  it("leaves the Stages of rows as tables", () => {
+    expect(tables(quals5()).stages.filter((candidate) => candidate.cardRows.length).map((candidate) => candidate.label)).toEqual(["Specific"]);
+  });
 });
