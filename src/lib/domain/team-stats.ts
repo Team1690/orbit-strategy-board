@@ -55,6 +55,8 @@ export type StatsView =
 interface PublishedRow {
   label: string;
   explanation: string | null;
+  // null when neither way is better
+  direction: "higher" | "lower" | null;
   value: JsonValue;
 }
 
@@ -65,10 +67,14 @@ interface PublishedStage {
   rows: PublishedRow[];
 }
 
+function publishedDirection(direction: unknown): "higher" | "lower" | null {
+  return direction === "higher" || direction === "lower" ? direction : null;
+}
+
 function publishedRows(rows: JsonValue | undefined): PublishedRow[] {
   if (!Array.isArray(rows)) return [];
   return rows.flatMap((row) => isObject(row) && typeof row.label === "string"
-    ? [{ label: row.label, explanation: typeof row.explanation === "string" ? row.explanation : null, value: row.value ?? null }]
+    ? [{ label: row.label, explanation: typeof row.explanation === "string" ? row.explanation : null, direction: publishedDirection(row.direction), value: row.value ?? null }]
     : []);
 }
 
@@ -109,12 +115,13 @@ function rawNumber(value: JsonValue): number | null {
 }
 
 function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | undefined>): Set<number> {
+  const pick = rows.find((row) => row)?.direction === "lower" ? Math.min : Math.max;
   return new Set((["red", "blue"] as const).flatMap((alliance) => {
     const numbers = stationColumns(columns, alliance).flatMap((index) => {
       const raw = rows[index] ? rawNumber(rows[index].value) : null;
       return raw === null ? [] : [{ index, raw }];
     });
-    const best = Math.max(...numbers.map(({ raw }) => raw));
+    const best = pick(...numbers.map(({ raw }) => raw));
     return numbers.filter(({ raw }) => raw === best).map(({ index }) => index);
   }));
 }
