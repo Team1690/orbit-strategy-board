@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newMatchPacket, parseNexusEvent, planSync, statsView } from "$lib/domain";
+import { newMatchPacket, parseNexusEvent, planSync, statsView, toWhatIfMatch } from "$lib/domain";
 import type { MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import isde1 from "./fixtures/nexus-2026isde1.json";
@@ -22,6 +22,12 @@ function synced(nexus: unknown, matchName: string): MatchPacket {
   return match;
 }
 
+function edited(edit: (answer: TeamStatsAnswer) => void): TeamStatsAnswer {
+  const copy = structuredClone(fixture);
+  edit(copy);
+  return copy;
+}
+
 function banner(packet: MatchPacket, answer: TeamStatsAnswer = fixture) {
   const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
@@ -37,7 +43,19 @@ describe("Stats tab banner for a Match from another event", () => {
     expect(banner(synced(isde3, "Quals 5"))).toBeNull();
   });
 
+  it("keeps the banner on a What-if copy of a Match from another event, since the copy keeps its event key", () => {
+    expect(banner(toWhatIfMatch(synced(isde1, "Quals 2")))).toEqual({ title: "Team Stats from 2026isde3", detail: "This Match is from 2026isde1." });
+  });
+
   it("counts a What-if Match made with New as the Scouting App's event", () => {
     expect(banner(newMatchPacket({ matchName: "Sketch", redTeams: ["9740", "9738", "1574"], blueTeams: ["1690", "7039", "2231"] }, "sketch"))).toBeNull();
+  });
+
+  it("shows no banner when the Team Stats have no event", () => {
+    const answer = edited((copy) => {
+      for (const row of copy.team_stats) row.event = "";
+    });
+
+    expect(banner(synced(isde1, "Quals 2"), answer)).toBeNull();
   });
 });
