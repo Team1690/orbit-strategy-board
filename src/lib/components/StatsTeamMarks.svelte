@@ -23,7 +23,8 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.25rem;
-    margin-top: 0.35rem;
+    max-width: 10rem;
+    margin: 0.35rem auto 0;
     white-space: normal;
   }
   .fault-marker {
