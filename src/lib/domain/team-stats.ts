@@ -1,8 +1,9 @@
 import type { JsonValue, MatchPacket, TeamStatsAnswer, TeamStatsFetch } from "$lib/native/types";
 
+import { readExtras } from "./extras";
 import { isObject } from "./json";
 import { packetLineup } from "./reassign";
-import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
+import { ALLIANCE_STATIONS, OUR_TEAM, STATION_NAMES, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
 import { matchEventKey } from "./sync";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 import { textDirection, type TextDirection } from "./text-direction";
@@ -19,7 +20,8 @@ export interface StatsViewInput {
 }
 
 export interface StatsColumn {
-  station: StationKey;
+  // a Bench Team plays in no Station - its column goes by its alliance's bench instead
+  station: StationKey | "redBench" | "blueBench";
   stationName: string;
   alliance: AllianceColor;
   team: string;
@@ -28,6 +30,8 @@ export interface StatsColumn {
   noData: boolean;
   activeFaults: number;
   robotTags: StatsTag[];
+  // drawn dimmed after its alliance's Stations
+  bench: boolean;
 }
 
 export interface StatsTag {
@@ -294,6 +298,18 @@ function cardRows(cards: StatsCard[]): StatsCardRow[] {
   });
 }
 
+const BENCHES = { red: { station: "redBench", stationName: "Red Bench" }, blue: { station: "blueBench", stationName: "Blue Bench" } } as const;
+
+// the Match's teams in column order - each alliance's Stations then its Bench Team
+function columnTeams(packet: MatchPacket) {
+  const lineup = packetLineup(packet);
+  const bench = readExtras(packet).bench ?? {};
+  return (["red", "blue"] as const).flatMap((alliance) => [
+    ...ALLIANCE_STATIONS[alliance].map((station) => ({ station, stationName: STATION_NAMES[station], alliance, team: lineup[station].trim(), bench: false })),
+    { ...BENCHES[alliance], alliance, team: bench[alliance]?.trim() ?? "", bench: true },
+  ].filter(({ team }) => team));
+}
+
 function estimatedPoints(payload: JsonValue | undefined): number | null {
   return isObject(payload) && typeof payload.estimated_points === "number" ? payload.estimated_points : null;
 }
@@ -349,20 +365,16 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     return { kind: "notice", title: "Team Stats aren't set up in this build", detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild." };
   }
   if (lastFetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: lastFetch.detail };
-  const lineup = packetLineup(packet);
   const published = new Map(lastFetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
-  const teams = STATIONS.flatMap((station) => {
-    const team = lineup[station].trim();
-    return team ? [{ station, team, payload: published.get(teamNumberKey(team) ?? "") }] : [];
-  });
+  const teams = columnTeams(packet).map((place) => ({ ...place, payload: published.get(teamNumberKey(place.team) ?? "") }));
   if (teams.some(({ payload }) => tooNew(payload))) {
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
   }
   const faultsByTeam = teams.map(({ payload }) => publishedFaults(payload));
-  const columns = teams.map(({ station, team, payload }, index) => ({
-    station, stationName: STATION_NAMES[station], alliance: stationAlliance(station),
+  const columns = teams.map(({ station, stationName, alliance, team, bench, payload }, index) => ({
+    station, stationName, alliance,
     team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),
-    activeFaults: faultsByTeam[index].length, robotTags: publishedTags(payload),
+    activeFaults: faultsByTeam[index].length, robotTags: publishedTags(payload), bench,
   }));
   const faults = columns.flatMap((column, index) => faultsByTeam[index].length ? [{ column, faults: faultsByTeam[index] }] : []);
   const stagesByTeam = teams.map(({ payload }) => publishedStages(payload));
