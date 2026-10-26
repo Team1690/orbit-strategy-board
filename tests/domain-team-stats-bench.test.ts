@@ -82,4 +82,13 @@ describe("Bench Teams on the Stats tab", () => {
       ["Blue 1", "1690", ["Lost comms", "Intake jams on the bump"]],
     ]);
   });
+
+  it("puts each Bench Team's dimmed card at the end of its alliance's row on Specific", () => {
+    const specific = tables(synced(playoff1)).stages.find((stage) => stage.label === "Specific");
+
+    expect(specific?.cardRows.map(({ alliance, cards }) => [alliance, cards.map(({ column }) => [column.team, column.bench])])).toEqual([
+      ["red", [["254", false], ["4590", false], ["2230", false], ["5654", true]]],
+      ["blue", [["1690", false], ["1657", false], ["3339", false], ["3075", true]]],
+    ]);
+  });
 });
