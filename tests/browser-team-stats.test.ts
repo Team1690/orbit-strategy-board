@@ -2,7 +2,7 @@ import { indexedDB } from "fake-indexeddb";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { browserInvoke } from "../src/lib/native/web";
-import type { TeamStats, TeamStatsConfirmed, TeamStatsFetch } from "../src/lib/native/types";
+import type { CachedTeamStats, TeamStats, TeamStatsConfirmed, TeamStatsFetch } from "../src/lib/native/types";
 
 const LINK = "https://scouting.example/v1/graphql";
 
@@ -117,5 +117,15 @@ describe("Team Stats cache", () => {
       detail,
       cached: { answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] }, fetchedAt: atTwoOhOne },
     });
+  });
+
+  it("can be read before the next fetch answers, once a fetch has come through", async () => {
+    buildWith("board-token");
+    const cached = () => browserInvoke<CachedTeamStats | null>("team_stats_cached");
+    expect(await cached()).toBeNull();
+
+    await fetchedAt(atTwo, { data: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+
+    expect(await cached()).toEqual({ answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] }, fetchedAt: atTwo });
   });
 });

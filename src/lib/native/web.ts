@@ -331,6 +331,7 @@ export async function browserInvoke<TResult>(command: string, args: Record<strin
     case "tba_team_matches_status": result = await tbaSourceRequest(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/event/${encodeURIComponent(String(args.eventKey))}/matches`, typeof args.etag === "string" ? args.etag : null); break;
     case "tba_team_events": result = await tbaRequest<TbaEvent[]>(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/events/${args.year}`); break;
     case "team_stats_fetch": result = await fetchTeamStats(); break;
+    case "team_stats_cached": result = await cachedTeamStats(); break;
     case "qr_encode": result = qrEncode(String(args.payload)); break;
     case "qr_reset": qrChunks.clear(); qrTotal = null; break;
     case "qr_receive": result = qrReceive(String(args.frame)); break;

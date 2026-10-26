@@ -3,7 +3,7 @@ import { invoke, isTauri, type InvokeArgs } from "@tauri-apps/api/core";
 import { browserInvoke } from "./web";
 
 import type {
-  BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
+  BoardMode, BoardState, BoardTool, CachedTeamStats, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
   PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent, TeamStatsFetch,
 } from "./types";
@@ -93,6 +93,7 @@ export const native = {
   },
   teamStats: {
     fetch: () => sourceCall<TeamStatsFetch>("team_stats_fetch"),
+    cached: () => sourceCall<CachedTeamStats | null>("team_stats_cached"),
   },
   qr: {
     encode: (payload: string) => call<string[]>("qr_encode", { payload }),
