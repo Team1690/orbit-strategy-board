@@ -13,7 +13,7 @@ function quals5(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
 }
 
 function view(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
-  return statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+  return statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, now: 0, ...input });
 }
 
 function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
@@ -146,7 +146,7 @@ describe("Stats tab", () => {
   });
 
   it("says the database can't be reached when the fetch failed", () => {
-    expect(view(quals5(), { lastFetch: { kind: "unreachable", detail: "fetch failed" } })).toEqual({
+    expect(view(quals5(), { lastFetch: { kind: "unreachable", detail: "fetch failed", cached: null } })).toEqual({
       kind: "notice",
       title: "Can't reach the database",
       detail: "fetch failed",

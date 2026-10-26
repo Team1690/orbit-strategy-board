@@ -2,7 +2,7 @@ import { indexedDB } from "fake-indexeddb";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { browserInvoke } from "../src/lib/native/web";
-import type { TeamStats, TeamStatsFetch } from "../src/lib/native/types";
+import type { CachedTeamStats, TeamStats, TeamStatsConfirmed, TeamStatsFetch } from "../src/lib/native/types";
 
 const LINK = "https://scouting.example/v1/graphql";
 
@@ -10,8 +10,9 @@ beforeAll(() => {
   Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: indexedDB });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals();
+  await browserInvoke("storage_clear");
 });
 
 function buildWith(token: string): void {
@@ -28,6 +29,8 @@ function databaseAnswers(body: unknown) {
 function teamStats(team: number): TeamStats {
   return { team_number: team, event: "2026isde3", build_stamp: 1761490800, payload: { version: 1, name: `Team ${team}`, estimated_points: null, stages: [] } };
 }
+
+const confirmed: TeamStatsConfirmed = { event: "2026isde3", build_stamp: 1761490800, confirmed_at: "2026-10-26T14:05:00.123456+00:00" };
 
 const fetchTeamStats = () => browserInvoke<TeamStatsFetch>("team_stats_fetch");
 
@@ -65,13 +68,64 @@ describe("Team Stats fetch", () => {
     buildWith("voided-token");
     databaseAnswers({ errors: [{ message: "Could not verify JWT: JWSError JWSInvalidSignature", extensions: { path: "$", code: "invalid-jwt" } }] });
 
-    expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "Could not verify JWT: JWSError JWSInvalidSignature" });
+    expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "Could not verify JWT: JWSError JWSInvalidSignature", cached: null });
   });
 
   it("reports the database unreachable when the request fails", async () => {
     buildWith("board-token");
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
 
-    expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "fetch failed" });
+    expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "fetch failed", cached: null });
+  });
+});
+
+describe("Team Stats fetch and Confirmed", () => {
+  it("asks for the Confirmed row in the same request and brings it along", async () => {
+    buildWith("board-token");
+    const fetch = databaseAnswers({ data: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+
+    const result = await fetchTeamStats();
+
+    const [, init] = fetch.mock.calls[0];
+    expect(JSON.parse(String(init?.body)).query).toContain("team_stats_confirmed { event build_stamp confirmed_at }");
+    expect(result).toMatchObject({ kind: "ok", answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+  });
+});
+
+describe("Team Stats cache", () => {
+  const atTwo = Date.parse("2026-10-26T14:00:00Z");
+  const atTwoOhOne = Date.parse("2026-10-26T14:01:00Z");
+
+  async function fetchedAt(time: number, body: unknown): Promise<void> {
+    vi.spyOn(Date, "now").mockReturnValue(time);
+    databaseAnswers(body);
+    await fetchTeamStats();
+  }
+
+  it.each([
+    ["the request fails", "fetch failed", () => vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }))],
+    ["the database answers with an error", "Could not verify JWT: JWSError JWSInvalidSignature", () => databaseAnswers({ errors: [{ message: "Could not verify JWT: JWSError JWSInvalidSignature" }] })],
+  ])("returns the last Team Stats that came through and when they were fetched when %s", async (_, detail, fail) => {
+    buildWith("board-token");
+    await fetchedAt(atTwo, { data: { team_stats: [teamStats(254)], team_stats_confirmed: [] } });
+    await fetchedAt(atTwoOhOne, { data: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+
+    fail();
+
+    expect(await fetchTeamStats()).toEqual({
+      kind: "unreachable",
+      detail,
+      cached: { answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] }, fetchedAt: atTwoOhOne },
+    });
+  });
+
+  it("can be read before the next fetch answers, once a fetch has come through", async () => {
+    buildWith("board-token");
+    const cached = () => browserInvoke<CachedTeamStats | null>("team_stats_cached");
+    expect(await cached()).toBeNull();
+
+    await fetchedAt(atTwo, { data: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] } });
+
+    expect(await cached()).toEqual({ answer: { team_stats: [teamStats(1690)], team_stats_confirmed: [confirmed] }, fetchedAt: atTwo });
   });
 });

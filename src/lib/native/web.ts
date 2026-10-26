@@ -1,9 +1,10 @@
 import type {
-  BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
+  BoardMode, BoardState, BoardTool, CachedTeamStats, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
   PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent, TeamStatsAnswer, TeamStatsFetch,
 } from "./types";
 import { fieldLayout } from "$lib/domain/field-layout";
+import { isObject } from "$lib/domain/json";
 import { newMatchPacket } from "$lib/domain/packets";
 import { whiteboardMatchFromPacket, writeWhiteboardPacket } from "$lib/whiteboard/packet";
 
@@ -13,7 +14,8 @@ const APP_DATA_KEY = "appData";
 const TBA_BASE = "https://www.thebluealliance.com/api/v3";
 const NEXUS_BASE = "https://frc.nexus/api/v1";
 const REQUEST_TIMEOUT_MS = 15_000;
-const TEAM_STATS_QUERY = "query TeamStats { team_stats(order_by: {team_number: asc}) { team_number event build_stamp payload } }";
+const TEAM_STATS_KEY = "teamStats";
+const TEAM_STATS_QUERY = "query TeamStats { team_stats(order_by: {team_number: asc}) { team_number event build_stamp payload } team_stats_confirmed { event build_stamp confirmed_at } }";
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 let qrTotal: number | null = null;
@@ -195,6 +197,16 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
   return response.kind === "missing-key" ? { kind: "rejected-key" } : response;
 }
 
+async function cachedTeamStats(): Promise<CachedTeamStats | null> {
+  const cached = await storageGet(TEAM_STATS_KEY).catch(() => null);
+  if (!isObject(cached) || !isObject(cached.answer) || typeof cached.fetchedAt !== "number") return null;
+  return Array.isArray(cached.answer.team_stats) && Array.isArray(cached.answer.team_stats_confirmed) ? cached as unknown as CachedTeamStats : null;
+}
+
+async function unreachableTeamStats(detail: string): Promise<TeamStatsFetch> {
+  return { kind: "unreachable", detail, cached: await cachedTeamStats() };
+}
+
 async function fetchTeamStats(): Promise<TeamStatsFetch> {
   if (!__HASURA_HTTP_LINK__ || !__HASURA_BOARD_TOKEN__) return { kind: "not-set-up" };
   try {
@@ -206,10 +218,13 @@ async function fetchTeamStats(): Promise<TeamStatsFetch> {
     });
     const body = await response.json() as { data: TeamStatsAnswer; errors?: Array<{ message: string }> };
     // hasura answers a rejected token or a missing permission with 200 and an errors list
-    if (body.errors?.length) return { kind: "unreachable", detail: body.errors[0].message };
-    return { kind: "ok", answer: { team_stats: body.data.team_stats } };
+    if (body.errors?.length) return unreachableTeamStats(body.errors[0].message);
+    const answer = { team_stats: body.data.team_stats, team_stats_confirmed: body.data.team_stats_confirmed };
+    // a tablet that can't keep them still shows the numbers that just came in
+    await storageSet(TEAM_STATS_KEY, { answer, fetchedAt: Date.now() } as unknown as JsonValue).catch(() => undefined);
+    return { kind: "ok", answer };
   } catch (error) {
-    return { kind: "unreachable", detail: error instanceof Error ? error.message : String(error) };
+    return unreachableTeamStats(error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -316,6 +331,7 @@ export async function browserInvoke<TResult>(command: string, args: Record<strin
     case "tba_team_matches_status": result = await tbaSourceRequest(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/event/${encodeURIComponent(String(args.eventKey))}/matches`, typeof args.etag === "string" ? args.etag : null); break;
     case "tba_team_events": result = await tbaRequest<TbaEvent[]>(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/events/${args.year}`); break;
     case "team_stats_fetch": result = await fetchTeamStats(); break;
+    case "team_stats_cached": result = await cachedTeamStats(); break;
     case "qr_encode": result = qrEncode(String(args.payload)); break;
     case "qr_reset": qrChunks.clear(); qrTotal = null; break;
     case "qr_receive": result = qrReceive(String(args.frame)); break;

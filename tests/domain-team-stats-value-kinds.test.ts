@@ -13,7 +13,7 @@ function quals5(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
 }
 
 function stageOf(answer: TeamStatsAnswer, label: string, packet = quals5()) {
-  const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false } satisfies StatsViewInput);
+  const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false, now: 0 } satisfies StatsViewInput);
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   const found = shown.stages.find((candidate) => candidate.label === label);
   if (!found) throw new Error(`no ${label} Stage`);

@@ -13,7 +13,7 @@ function quals5(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
 }
 
 function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
-  const shown = statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+  const shown = statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, now: 0, ...input });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
 }

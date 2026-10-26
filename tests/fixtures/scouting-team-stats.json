@@ -2709,5 +2709,11 @@
         ]
       }
     }
+  ],
+  "team_stats_confirmed": [
+    {
+      "event": "2026isde3",
+      "build_stamp": 1793000000
+    }
   ]
 }

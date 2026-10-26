@@ -29,7 +29,7 @@ function edited(edit: (answer: TeamStatsAnswer) => void): TeamStatsAnswer {
 }
 
 function banner(packet: MatchPacket, answer: TeamStatsAnswer = fixture) {
-  const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false });
+  const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false, now: 0 });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown.eventBanner;
 }

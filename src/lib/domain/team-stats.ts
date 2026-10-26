@@ -10,6 +10,9 @@ import { textDirection, type TextDirection } from "./text-direction";
 
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
+const MINUTE_MS = 60_000;
+const UNREACHABLE = "Can't reach the database";
+
 export interface StatsViewInput {
   // null until the first fetch answers
   lastFetch: TeamStatsFetch | null;
@@ -17,6 +20,8 @@ export interface StatsViewInput {
   chosenStage: string | null;
   teamColors: TeamColorOverrides;
   autoLighten: boolean;
+  // Date.now() - the age of the numbers is read against the tablet's clock
+  now: number;
 }
 
 export interface StatsColumn {
@@ -135,10 +140,17 @@ export interface StatsStage {
   faults: StatsTeamFaults[];
 }
 
+export interface StatsFreshness {
+  // how long ago the numbers were Confirmed
+  confirmed: string;
+  // set when the last fetch failed and the numbers are the ones the tablet kept
+  unreachable: { title: string; detail: string } | null;
+}
+
 export type StatsView =
   | { kind: "loading" }
   | { kind: "notice"; title: string; detail: string | null }
-  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null };
+  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null; freshness: StatsFreshness };
 
 interface PublishedRow {
   label: string;
@@ -359,13 +371,32 @@ function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnsw
   return { title: `Team Stats from ${events.join(" and ")}`, detail: `This Match is from ${eventKey}.` };
 }
 
-export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
+function plural(count: number, unit: string): string {
+  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
+// a server clock ahead of the tablet's would read as a time to come
+function confirmedAgo(answer: TeamStatsAnswer, now: number): string {
+  const at = Date.parse(answer.team_stats_confirmed[0]?.confirmed_at ?? "");
+  if (!Number.isFinite(at)) return "Not Confirmed yet";
+  const minutes = Math.floor(Math.max(0, now - at) / MINUTE_MS);
+  if (minutes < 1) return "Confirmed less than a minute ago";
+  return `Confirmed ${minutes < 60 ? plural(minutes, "minute") : plural(Math.floor(minutes / 60), "hour")} ago`;
+}
+
+export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten, now }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
     return { kind: "notice", title: "Team Stats aren't set up in this build", detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild." };
   }
-  if (lastFetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: lastFetch.detail };
-  const published = new Map(lastFetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
+  // what the tablet kept stays on screen while the database can't be reached
+  const answer = (lastFetch.kind === "ok" ? lastFetch : lastFetch.cached)?.answer;
+  if (!answer?.team_stats.length) {
+    return lastFetch.kind === "unreachable"
+      ? { kind: "notice", title: UNREACHABLE, detail: lastFetch.detail }
+      : { kind: "notice", title: "No Team Stats have been published yet", detail: "They show up here once a Synced Scouting App device at Strategy role or above publishes them." };
+  }
+  const published = new Map(answer.team_stats.map((team) => [String(team.team_number), team.payload]));
   const teams = columnTeams(packet).map((place) => ({ ...place, payload: published.get(teamNumberKey(place.team) ?? "") }));
   if (teams.some(({ payload }) => tooNew(payload))) {
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
@@ -401,6 +432,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   });
   return {
     kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
-    eventBanner: eventBanner(packet, teams.map(({ team }) => team), lastFetch.answer),
+    eventBanner: eventBanner(packet, teams.map(({ team }) => team), answer),
+    freshness: { confirmed: confirmedAgo(answer, now), unreachable: lastFetch.kind === "unreachable" ? { title: UNREACHABLE, detail: lastFetch.detail } : null },
   };
 }

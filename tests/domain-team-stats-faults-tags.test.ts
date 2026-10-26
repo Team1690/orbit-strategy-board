@@ -11,7 +11,7 @@ const fixture = golden as unknown as TeamStatsAnswer;
 const quals5 = newMatchPacket({ matchName: "Quals 5", redTeams: ["254", "4590", "2230"], blueTeams: ["1690", "1657", "3339"], tbaEventKey: "2026isde3" }, "quals-5");
 
 function tables(input: Partial<StatsViewInput> = {}) {
-  const shown = statsView({ lastFetch: { kind: "ok", answer: fixture }, packet: quals5, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+  const shown = statsView({ lastFetch: { kind: "ok", answer: fixture }, packet: quals5, chosenStage: null, teamColors: {}, autoLighten: false, now: 0, ...input });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
 }
