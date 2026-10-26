@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseNexusEvent, planSync, statsView, type AllianceColor } from "$lib/domain";
+import { parseNexusEvent, planSync, statsView, swapBenchTeam, type AllianceColor } from "$lib/domain";
 import type { MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
@@ -9,6 +9,7 @@ const fixture = golden as unknown as TeamStatsAnswer;
 
 interface Listed { label: string; redTeams: string[]; blueTeams: string[] }
 
+const quals5: Listed = { label: "Qualification 5", redTeams: ["254", "4590", "2230"], blueTeams: ["1690", "1657", "3339"] };
 // each playoff alliance lists its Bench Team fourth
 const playoff1: Listed = { label: "Playoff 1", redTeams: ["254", "4590", "2230", "5654"], blueTeams: ["1690", "1657", "3339", "3075"] };
 
@@ -89,6 +90,29 @@ describe("Bench Teams on the Stats tab", () => {
     expect(specific?.cardRows.map(({ alliance, cards }) => [alliance, cards.map(({ column }) => [column.team, column.bench])])).toEqual([
       ["red", [["254", false], ["4590", false], ["2230", false], ["5654", true]]],
       ["blue", [["1690", false], ["1657", false], ["3339", false], ["3075", true]]],
+    ]);
+  });
+
+  it("follows a swap - the Bench Team swapped in counts and the team it displaced is dimmed on the bench", () => {
+    const shown = tables(swapBenchTeam(synced(playoff1), "blueTwo"));
+
+    expect(shown.columns.filter((column) => column.alliance === "blue").map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+      ["Blue 1", "1690", false], ["Blue 2", "3075", false], ["Blue 3", "3339", false], ["Blue Bench", "1657", true],
+    ]);
+    expect(shown.estimatedScores.blue).toBe("171");
+  });
+
+  it("follows a Lineup change the schedule reports", () => {
+    const [changed] = planSync({ packets: [synced(playoff1)], schedule: schedule({ ...playoff1, redTeams: ["5654", "254", "2230", "4590"] }), newId: () => "unused" }).update;
+
+    expect(tables(changed).columns.filter((column) => column.alliance === "red").map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+      ["Red 1", "5654", false], ["Red 2", "254", false], ["Red 3", "2230", false], ["Red Bench", "4590", true],
+    ]);
+  });
+
+  it("shows no Bench Team in a qualification Match", () => {
+    expect(tables(synced(quals5)).columns.map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
+      ["Red 1", "254", false], ["Red 2", "4590", false], ["Red 3", "2230", false], ["Blue 1", "1690", false], ["Blue 2", "1657", false], ["Blue 3", "3339", false],
     ]);
   });
 });
