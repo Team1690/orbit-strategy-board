@@ -5,10 +5,13 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { statsView } from "$lib/domain";
+  import { statsView, type AllianceColor, type StatsMark } from "$lib/domain";
   import { native } from "$lib/native/api";
   import type { MatchPacket, TeamStatsFetch } from "$lib/native/types";
   import { boardConfig } from "$lib/stores/config.svelte";
+
+  const MARKS: Record<StatsMark, string> = { "green check": "fa-check mark-green", "red cross": "fa-xmark mark-red", "grey cross": "fa-xmark mark-grey" };
+  const ALLIANCES: AllianceColor[] = ["red", "blue"];
 
   let { packet }: { packet: MatchPacket } = $props();
 
@@ -89,7 +92,14 @@
                 </span>
               </th>
               {#each row.cells as cell, index (view.columns[index].station)}
-                <td class={view.columns[index].alliance} class:empty={cell === null}>{cell?.text ?? ""}</td>
+                <td class={view.columns[index].alliance} class:empty={cell === null}>
+                  {#if cell?.mark}
+                    <i class="fas {MARKS[cell.mark]}" aria-hidden="true"></i>
+                    <span class="sr-only">{cell.text}</span>
+                  {:else}
+                    {cell?.text ?? ""}
+                  {/if}
+                </td>
               {/each}
             </tr>
             {#if row.explanation && explained === row.label}
@@ -100,6 +110,62 @@
           {/each}
         </tbody>
       </table>
+      {#each stage?.grids ?? [] as grid (grid.label)}
+        <section class="stats-grid" aria-label={grid.label}>
+          <h3 class="label-line grid-title">
+            {grid.label}
+            {#if grid.explanation}
+              <button class="explain" aria-label={`What ${grid.label} means`} aria-expanded={explained === grid.label} onclick={() => (explained = explained === grid.label ? null : grid.label)}>
+                <i class="fas fa-circle-info"></i>
+              </button>
+            {/if}
+          </h3>
+          {#if grid.explanation && explained === grid.label}
+            <p class="grid-explanation">{grid.explanation}</p>
+          {/if}
+          <div class="grid-alliances">
+            {#each ALLIANCES.filter((alliance) => view.columns.some((column) => column.alliance === alliance)) as alliance (alliance)}
+              <div class="grid-alliance">
+                {#each grid.teams as team, index (view.columns[index].station)}
+                  {@const column = view.columns[index]}
+                  {#if column.alliance === alliance}
+                    <figure class="grid-team {alliance}">
+                      <figcaption>
+                        <span class="grid-team-number" style:color={column.color}>{column.team}</span>
+                        <span class="station">{column.stationName}</span>
+                      </figcaption>
+                      {#if team}
+                        <table class="small-grid">
+                          <thead>
+                            <tr>
+                              <td></td>
+                              {#each team.columns as heading, columnIndex (columnIndex)}
+                                <th scope="col">{heading}</th>
+                              {/each}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {#each team.rows as heading, rowIndex (rowIndex)}
+                              <tr>
+                                <th scope="row">{heading}</th>
+                                {#each team.cells[rowIndex] as gridCell, cellIndex (cellIndex)}
+                                  <td class:zero={gridCell.zero}>{gridCell.text}</td>
+                                {/each}
+                              </tr>
+                            {/each}
+                          </tbody>
+                        </table>
+                      {:else}
+                        <p class="no-grid">{column.noData ? "No data" : "-"}</p>
+                      {/if}
+                    </figure>
+                  {/if}
+                {/each}
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/each}
     </div>
   {/if}
 </div>
@@ -201,5 +267,83 @@
     font-size: 0.85rem;
     text-align: left;
     white-space: normal;
+  }
+  .mark-green { color: #4caf50; }
+  .mark-red { color: #f44336; }
+  .mark-grey { color: #9e9e9e; }
+  .stats-grid { margin-top: 1.75rem; }
+  .grid-title {
+    margin: 0 0 0.75rem;
+    color: #999;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .grid-explanation {
+    max-width: 40rem;
+    margin: -0.25rem 0 0.75rem;
+    color: #999;
+    font-size: 0.85rem;
+  }
+  .grid-alliances {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+  }
+  .grid-alliance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .grid-team {
+    margin: 0;
+    padding: 0.5rem 0.75rem 0.6rem;
+    border: 1px solid #1e1e1e;
+    border-top: 4px solid transparent;
+    border-radius: 6px;
+    background: #141414;
+  }
+  .grid-team.red { border-top-color: #dc2626; }
+  .grid-team.blue { border-top-color: #2563eb; }
+  .grid-team figcaption {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+  .grid-team-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .grid-team.red .station { color: #c97070; }
+  .grid-team.blue .station { color: #6090c9; }
+  .small-grid {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .small-grid th,
+  .small-grid td {
+    padding: 0.25rem 0.55rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .small-grid th {
+    color: #777;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .small-grid tbody th { padding-left: 0; text-align: left; }
+  .small-grid td {
+    color: #e8e8e8;
+    font-weight: 600;
+  }
+  .small-grid td.zero { color: #3d3d3d; }
+  .no-grid {
+    min-width: 9rem;
+    margin: 0;
+    padding: 1.5rem 0;
+    color: #777;
+    font-style: italic;
+    text-align: center;
   }
 </style>
