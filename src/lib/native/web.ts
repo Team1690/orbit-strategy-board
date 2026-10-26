@@ -203,7 +203,9 @@ async function fetchTeamStats(): Promise<TeamStatsFetch> {
     body: JSON.stringify({ query: TEAM_STATS_QUERY }),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
-  const body = await response.json() as { data: TeamStatsAnswer };
+  const body = await response.json() as { data: TeamStatsAnswer; errors?: Array<{ message: string }> };
+  // hasura answers a rejected token or a missing permission with 200 and an errors list
+  if (body.errors?.length) return { kind: "unreachable", detail: body.errors[0].message };
   return { kind: "ok", answer: { team_stats: body.data.team_stats } };
 }
 

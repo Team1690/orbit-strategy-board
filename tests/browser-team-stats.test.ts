@@ -60,4 +60,11 @@ describe("Team Stats fetch", () => {
     expect(await fetchTeamStats()).toEqual({ kind: "not-set-up" });
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("reports the database unreachable when it answers with an error", async () => {
+    buildWith("voided-token");
+    databaseAnswers({ errors: [{ message: "Could not verify JWT: JWSError JWSInvalidSignature", extensions: { path: "$", code: "invalid-jwt" } }] });
+
+    expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "Could not verify JWT: JWSError JWSInvalidSignature" });
+  });
 });
