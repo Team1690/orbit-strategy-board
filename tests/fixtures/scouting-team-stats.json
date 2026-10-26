@@ -1,0 +1,2205 @@
+{
+  "team_stats": [
+    {
+      "team_number": 254,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "The Cheesy Poofs",
+        "estimated_points": 103.44296346927926,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "55.1",
+                  "raw": 55.1
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "47.9",
+                  "raw": 47.9
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "4.0",
+                  "raw": 4.0
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "57kg",
+                  "raw": 57
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "84cm",
+                  "raw": 84
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "79cm",
+                  "raw": 79
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "30",
+                  "raw": 30
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 22.333333333333332,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "22.3",
+                  "raw": 22.3
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "14.7",
+                  "raw": 14.7
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "12.3",
+                  "raw": 12.3
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 51.666666666666664,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "51.7",
+                  "raw": 51.7
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "54.7",
+                  "raw": 54.7
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "30.1",
+                  "raw": 30.1
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L3",
+                  "raw": 3
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "96.3s",
+                  "raw": 96.3
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "3/3/3",
+                  "raw": 3
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 1574,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "MisCar",
+        "estimated_points": 16.905825885468385,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "21.0",
+                  "raw": 21.0
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2.0",
+                  "raw": 2.0
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "96%",
+                  "raw": 96
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "96%",
+                  "raw": 96
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "51kg",
+                  "raw": 51
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "82cm",
+                  "raw": 82
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "68cm",
+                  "raw": 68
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "10",
+                  "raw": 10
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 2.666666666666667,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2.7",
+                  "raw": 2.7
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2.7",
+                  "raw": 2.7
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 9.666666666666666,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "9.7",
+                  "raw": 9.7
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "12.7",
+                  "raw": 12.7
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2.7",
+                  "raw": 2.7
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L1",
+                  "raw": 1
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "78.0s",
+                  "raw": 78.0
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1/1/3",
+                  "raw": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 1657,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "Hamosad",
+        "estimated_points": 13.333333333333334,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "18.2",
+                  "raw": 18.2
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "62kg",
+                  "raw": 62
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "80cm",
+                  "raw": 80
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "71cm",
+                  "raw": 71
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "8",
+                  "raw": 8
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 0.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 0.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L2",
+                  "raw": 2
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "56.0s",
+                  "raw": 56.0
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2/3/3",
+                  "raw": 2
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 1690,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "Orbit",
+        "estimated_points": 62.267227620939146,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "42.5",
+                  "raw": 42.5
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "31.6",
+                  "raw": 31.6
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "3.0",
+                  "raw": 3.0
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "98%",
+                  "raw": 98
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "54kg",
+                  "raw": 54
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "91cm",
+                  "raw": 91
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "76cm",
+                  "raw": 76
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "12",
+                  "raw": 12
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 11.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "11.0",
+                  "raw": 11.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "7.0",
+                  "raw": 7.0
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "8.3",
+                  "raw": 8.3
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 30.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "30.0",
+                  "raw": 30.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "35.7",
+                  "raw": 35.7
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "9.0",
+                  "raw": 9.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "20.4",
+                  "raw": 20.4
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L3",
+                  "raw": 3
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "57.0s",
+                  "raw": 57.0
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2/3/3",
+                  "raw": 2
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 2230,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "General Angels",
+        "estimated_points": 15.1984126984127,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "12.0",
+                  "raw": 12.0
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2.0",
+                  "raw": 2.0
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "62%",
+                  "raw": 62
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "62%",
+                  "raw": 62
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "1",
+                  "raw": 1
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "48kg",
+                  "raw": 48
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "70cm",
+                  "raw": 70
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "70cm",
+                  "raw": 70
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "5",
+                  "raw": 5
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 1.6666666666666667,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1.7",
+                  "raw": 1.7
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.7",
+                  "raw": 0.7
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 9.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "9.0",
+                  "raw": 9.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "8.7",
+                  "raw": 8.7
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L1",
+                  "raw": 1
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "56.5s",
+                  "raw": 56.5
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1/2/3",
+                  "raw": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 3075,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "Ha-Dream Team",
+        "estimated_points": 55.44461914744934,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "30.4",
+                  "raw": 30.4
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "26.2",
+                  "raw": 26.2
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "3.5",
+                  "raw": 3.5
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "55kg",
+                  "raw": 55
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "88cm",
+                  "raw": 88
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "74cm",
+                  "raw": 74
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "15",
+                  "raw": 15
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "no"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 7.333333333333334,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "7.3",
+                  "raw": 7.3
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "7.3",
+                  "raw": 7.3
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "6.0",
+                  "raw": 6.0
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 28.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "28.0",
+                  "raw": 28.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "35.3",
+                  "raw": 35.3
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "3.7",
+                  "raw": 3.7
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "17.5",
+                  "raw": 17.5
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L3",
+                  "raw": 3
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "69.7s",
+                  "raw": 69.7
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2/3/3",
+                  "raw": 2
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 3339,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "BumbleB",
+        "estimated_points": 53.009469696969695,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "25.6",
+                  "raw": 25.6
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "2.5",
+                  "raw": 2.5
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "52kg",
+                  "raw": 52
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "75cm",
+                  "raw": 75
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "75cm",
+                  "raw": 75
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "12",
+                  "raw": 12
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "yes"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 9.333333333333334,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "9.3",
+                  "raw": 9.3
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "3.7",
+                  "raw": 3.7
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1/1/3",
+                  "raw": 1
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 25.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "25.0",
+                  "raw": 25.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "22.0",
+                  "raw": 22.0
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "5.0",
+                  "raw": 5.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L2",
+                  "raw": 2
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "116.0s",
+                  "raw": 116.0
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "3/3/3",
+                  "raw": 3
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 4590,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "GreenBlitz",
+        "estimated_points": null,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "0",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "unknown"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "unknown"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": null,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/0",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": null,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "None",
+                  "raw": 0
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/0",
+                  "raw": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "team_number": 5654,
+      "event": "2026isde3",
+      "build_stamp": 1793000000,
+      "payload": {
+        "version": 1,
+        "name": "Phoenix",
+        "estimated_points": 9.064814814814815,
+        "stages": [
+          {
+            "label": "Pit",
+            "rows": [
+              {
+                "label": "OPR",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "9.4",
+                  "raw": 9.4
+                }
+              },
+              {
+                "label": "EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "BPS",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1.5",
+                  "raw": 1.5
+                }
+              },
+              {
+                "label": "Drive Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "100%",
+                  "raw": 100
+                }
+              },
+              {
+                "label": "Overall Uptime",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "93%",
+                  "raw": 93
+                }
+              },
+              {
+                "label": "Stopped",
+                "direction": "lower",
+                "value": {
+                  "kind": "text",
+                  "text": "1",
+                  "raw": 1
+                }
+              },
+              {
+                "label": "Weight",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Height",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Width",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Max Balls",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Pass Trench",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "unknown"
+                }
+              },
+              {
+                "label": "Pass Bump",
+                "direction": "neither",
+                "value": {
+                  "kind": "yes_no",
+                  "answer": "unknown"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Auto",
+            "total": 6.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "6.0",
+                  "raw": 6.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1.0",
+                  "raw": 1.0
+                }
+              },
+              {
+                "label": "Auto EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              },
+              {
+                "label": "Auto Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0/0/3",
+                  "raw": 0
+                }
+              }
+            ]
+          },
+          {
+            "label": "Tele",
+            "total": 6.0,
+            "rows": [
+              {
+                "label": "Avg Scored",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "6.0",
+                  "raw": 6.0
+                }
+              },
+              {
+                "label": "Avg Shot Attempts",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "7.0",
+                  "raw": 7.0
+                }
+              },
+              {
+                "label": "Avg Full Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Avg Half Court",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "0.0",
+                  "raw": 0.0
+                }
+              },
+              {
+                "label": "Tele EPA",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "-"
+                }
+              }
+            ]
+          },
+          {
+            "label": "Endgame",
+            "rows": [
+              {
+                "label": "Climb Level",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "L1",
+                  "raw": 1
+                }
+              },
+              {
+                "label": "Time Avg",
+                "explanation": "Estimated from the time of the last scouted action before the climb. This is not an accurate measurement of actual climb duration.",
+                "direction": "neither",
+                "value": {
+                  "kind": "text",
+                  "text": "92.5s",
+                  "raw": 92.5
+                }
+              },
+              {
+                "label": "Climb (S/A/P)",
+                "direction": "higher",
+                "value": {
+                  "kind": "text",
+                  "text": "1/1/3",
+                  "raw": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
