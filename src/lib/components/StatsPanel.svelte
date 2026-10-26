@@ -14,6 +14,8 @@
 
   let { packet }: { packet: MatchPacket } = $props();
 
+  const ALLIANCES = ["red", "blue"] as const;
+
   let lastFetch = $state.raw<TeamStatsFetch | null>(null);
   let chosenStage = $state(lastStage);
   let explained = $state<string | null>(null);
@@ -51,6 +53,18 @@
       {/if}
     </div>
   {:else}
+    {#if view.eventBanner}
+      <div id="stats-event-banner" class="flex items-center gap-3 mx-4 md:mx-6 mt-4 px-4 py-2.5" role="status">
+        <i class="fas fa-triangle-exclamation text-[#eab308]" aria-hidden="true"></i>
+        <p><span class="font-bold text-[#e8e8e8]">{view.eventBanner.title}</span> <span class="text-[#999]">{view.eventBanner.detail}</span></p>
+      </div>
+    {/if}
+    <div id="stats-estimated-score" class="flex items-baseline justify-center gap-3 px-4 md:px-6 pt-4">
+      <span class="caption">Estimated score</span>
+      <span class="score red">{view.estimatedScores.red}</span>
+      <span class="versus">vs</span>
+      <span class="score blue">{view.estimatedScores.blue}</span>
+    </div>
     <div id="stats-stages" class="flex flex-wrap gap-2 px-4 md:px-6 pt-4" role="tablist" aria-label="Stages">
       {#each view.stages as candidate (candidate.label)}
         <button class="stage-tab" class:chosen={candidate.chosen} role="tab" aria-selected={candidate.chosen} onclick={() => choose(candidate.label)}>{candidate.label}</button>
@@ -79,6 +93,17 @@
           </tr>
         </thead>
         <tbody>
+          {#if stage?.totals}
+            <tr class="totals">
+              <th class="row-label" scope="row">Alliance Total</th>
+              {#each ALLIANCES as alliance (alliance)}
+                {@const span = view.columns.filter((column) => column.alliance === alliance).length}
+                {#if span}
+                  <td class={alliance} colspan={span}>{stage.totals[alliance]}</td>
+                {/if}
+              {/each}
+            </tr>
+          {/if}
           {#each stage?.rows ?? [] as row (row.label)}
             <tr>
               <th class="row-label" scope="row">
@@ -92,7 +117,7 @@
                 </span>
               </th>
               {#each row.cells as cell, index (view.columns[index].station)}
-                <td class={view.columns[index].alliance} class:empty={cell === null}>{cell?.text ?? ""}</td>
+                <td class={view.columns[index].alliance} class:empty={cell === null} class:best={cell?.best}>{cell?.text ?? ""}</td>
               {/each}
             </tr>
             {#if row.explanation && explained === row.label}
@@ -111,6 +136,28 @@
 </div>
 
 <style>
+  #stats-event-banner {
+    border: 1px solid #4a3c0e;
+    border-left: 4px solid #eab308;
+    border-radius: 6px;
+    background: #1a160a;
+  }
+  #stats-estimated-score .caption {
+    color: #777;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .score {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .score.red { color: #c97070; }
+  .score.blue { color: #6090c9; }
+  .versus { color: #666; }
+
   .stage-tab {
     padding: 0.45rem 1.1rem;
     border: 1px solid #2a2a2a;
@@ -187,6 +234,21 @@
     font-style: italic;
   }
   td.empty { background: #101010; }
+  td.best {
+    color: #ffffff;
+    font-weight: 700;
+  }
+  td.best.red { background: rgba(220, 38, 38, 0.24); }
+  td.best.blue { background: rgba(37, 99, 235, 0.28); }
+  #stats-table tr.totals th,
+  #stats-table tr.totals td { border-bottom: 2px solid #2a2a2a; }
+  #stats-table tr.totals td {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  #stats-table tr.totals td.red { color: #c97070; }
+  #stats-table tr.totals td.blue { color: #6090c9; }
   .explain {
     display: inline-flex;
     align-items: center;
