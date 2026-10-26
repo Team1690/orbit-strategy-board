@@ -125,7 +125,7 @@
           {#each stage.cardRows as cardRow (cardRow.alliance)}
             <div class="card-row">
               {#each cardRow.cards as card (card.column.station)}
-                <article class="team-card">
+                <article class="team-card" class:bench={card.column.bench}>
                   <header class="team-head {card.column.alliance}">{@render teamHeader(card.column)}</header>
                   {#if card.notes}
                     <div class="notes">
@@ -177,7 +177,7 @@
           <tr>
             <th class="row-label" scope="col"><span class="sr-only">Row</span></th>
             {#each view.columns as column (column.station)}
-              <th class="team-head {column.alliance}" scope="col">{@render teamHeader(column)}</th>
+              <th class="team-head {column.alliance}" class:bench={column.bench} scope="col">{@render teamHeader(column)}</th>
             {/each}
           </tr>
         </thead>
@@ -186,9 +186,12 @@
             <tr class="totals">
               <th class="row-label" scope="row">Alliance Total</th>
               {#each ALLIANCES as alliance (alliance)}
-                {@const span = view.columns.filter((column) => column.alliance === alliance).length}
+                {@const span = view.columns.filter((column) => column.alliance === alliance && !column.bench).length}
                 {#if span}
                   <td class={alliance} colspan={span}>{stage.totals[alliance]}</td>
+                {/if}
+                {#if view.columns.some((column) => column.alliance === alliance && column.bench)}
+                  <td class={alliance}></td>
                 {/if}
               {/each}
             </tr>
@@ -206,7 +209,7 @@
                 </span>
               </th>
               {#each row.cells as cell, index (view.columns[index].station)}
-                <td class={view.columns[index].alliance} class:empty={cell === null} class:best={cell?.best}>
+                <td class={view.columns[index].alliance} class:bench={view.columns[index].bench} class:empty={cell === null} class:best={cell?.best}>
                   {#if cell?.mark}
                     <i class="fas {MARKS[cell.mark]}" aria-hidden="true"></i>
                     <span class="sr-only">{cell.text}</span>
@@ -243,7 +246,7 @@
                 {#each grid.teams as team, index (view.columns[index].station)}
                   {@const column = view.columns[index]}
                   {#if column.alliance === alliance}
-                    <figure class="grid-team {alliance}">
+                    <figure class="grid-team {alliance}" class:bench={column.bench}>
                       <figcaption>
                         <span class="grid-team-number" style:color={column.color}>{column.team}</span>
                         <span class="station">{column.stationName}</span>
@@ -390,6 +393,13 @@
     font-size: 0.8rem;
     font-style: italic;
   }
+  /* the sticky header stays opaque so rows scrolling under it never show through - only what's on it dims */
+  #stats-table .team-head.bench > :global(*),
+  td.bench,
+  .grid-team.bench,
+  .team-card.bench { opacity: 0.5; }
+  #stats-table .team-head.bench.red { border-top-color: rgba(220, 38, 38, 0.5); }
+  #stats-table .team-head.bench.blue { border-top-color: rgba(37, 99, 235, 0.5); }
   td.empty { background: #101010; }
   td.best {
     color: #ffffff;

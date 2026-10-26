@@ -8,7 +8,7 @@
   <h3 id="stats-faults-title"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>Active Faults</h3>
   <div class="fault-teams">
     {#each teams as { column, faults } (column.station)}
-      <div class="fault-team">
+      <div class="fault-team" class:bench={column.bench}>
         <div class="fault-team-head">
           <span class="team-number" style:color={column.color}>{column.team}</span>
           <span class="station {column.alliance}">{column.stationName}</span>
@@ -61,6 +61,7 @@
     border-radius: 6px;
     background: #141414;
   }
+  .fault-team.bench { opacity: 0.5; }
   .fault-team-head {
     display: flex;
     align-items: baseline;
