@@ -63,7 +63,7 @@ describe("Specific Stage", () => {
   });
 
   it("lists only the categories someone wrote about, each with its stars, avg when more than one rating went in and the latest note in full", () => {
-    // two scouters rated 1690's General - nobody wrote about its Scoring, Delivery, Intake, Defense or Stealing
+    // two scouters rated 1690's General and nobody wrote about its other five categories
     expect(notesOn(tables(quals5()), "1690").categories).toMatchObject([
       { label: "General", stars: 4, average: true, latest: "Very consistent cycles" },
       { label: "Driving", stars: 5, average: false, latest: "נהג מהיר ומדויק" },
@@ -83,7 +83,7 @@ describe("Specific Stage", () => {
   it("says how many scouters wrote about the team once more than one did", () => {
     const shown = tables(quals5());
 
-    // two scouters wrote about 1690, one about 2230, and 3339's only scouter gave stars without writing
+    // two scouters wrote about 1690 and one about 2230 - 3339's only scouter gave stars without writing
     expect(["1690", "2230", "3339", "4590"].map((team) => notesOn(shown, team).scouters)).toEqual(["2 scouters", null, null, null]);
   });
 
