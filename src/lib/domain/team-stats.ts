@@ -85,9 +85,10 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
-function eventBanner(packet: MatchPacket, answer: TeamStatsAnswer) {
+function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer) {
   const eventKey = matchEventKey(packet);
-  const event = answer.team_stats[0]?.event;
+  const rows = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
+  const event = teams.flatMap((team) => rows.get(teamNumberKey(team) ?? "") ?? [])[0]?.event;
   if (eventKey === null || !event || event === eventKey) return null;
   return { title: `Team Stats from ${event}`, detail: `This Match is from ${eventKey}.` };
 }
@@ -126,5 +127,5 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     });
     return { label, chosen: label === chosen, rows };
   });
-  return { kind: "stats", columns, stages, eventBanner: eventBanner(packet, lastFetch.answer) };
+  return { kind: "stats", columns, stages, eventBanner: eventBanner(packet, teams.map(({ team }) => team), lastFetch.answer) };
 }

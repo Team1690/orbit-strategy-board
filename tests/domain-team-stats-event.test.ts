@@ -58,4 +58,12 @@ describe("Stats tab banner for a Match from another event", () => {
 
     expect(banner(synced(isde1, "Quals 2"), answer)).toBeNull();
   });
+
+  it("goes by the Match's teams, not by rows another event left behind", () => {
+    const answer = edited((copy) => {
+      copy.team_stats.unshift({ ...copy.team_stats[0], team_number: 125, event: "2026isde1" });
+    });
+
+    expect(banner(synced(isde3, "Quals 5"), answer)).toBeNull();
+  });
 });
