@@ -2193,8 +2193,7 @@
                 "direction": "lower",
                 "value": {
                   "kind": "text",
-                  "text": "0",
-                  "raw": 0
+                  "text": "0"
                 }
               },
               {
@@ -2280,8 +2279,7 @@
                 "direction": "higher",
                 "value": {
                   "kind": "text",
-                  "text": "0/0/0",
-                  "raw": 0
+                  "text": "0/0/0"
                 }
               }
             ]
@@ -2340,8 +2338,7 @@
                 "direction": "higher",
                 "value": {
                   "kind": "text",
-                  "text": "None",
-                  "raw": 0
+                  "text": "None"
                 }
               },
               {
@@ -2358,8 +2355,7 @@
                 "direction": "higher",
                 "value": {
                   "kind": "text",
-                  "text": "0/0/0",
-                  "raw": 0
+                  "text": "0/0/0"
                 }
               },
               {
