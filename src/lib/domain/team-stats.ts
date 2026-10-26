@@ -59,7 +59,8 @@ export interface StatsNotes {
 export interface StatsCard {
   // headed like the team's column in the tables
   column: StatsColumn;
-  notes: StatsNotes;
+  // null when the team has no Team Stats
+  notes: StatsNotes | null;
 }
 
 export interface StatsCardRow {
@@ -196,7 +197,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
       };
     });
     const notes = teams.map(({ payload }) => notesIn(payload, label));
-    const cards = columns.map((column, index) => ({ column, notes: stageNotes(notes[index]) }));
+    const cards = columns.map((column, index) => ({ column, notes: column.noData ? null : stageNotes(notes[index]) }));
     return { label, chosen: label === chosen, rows, cardRows: notes.some(Boolean) ? cardRows(cards) : [] };
   });
   return { kind: "stats", columns, stages };

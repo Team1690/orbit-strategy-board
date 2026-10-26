@@ -43,6 +43,12 @@ function cardOf(shown: ReturnType<typeof tables>, team: string) {
   return found;
 }
 
+function notesOn(shown: ReturnType<typeof tables>, team: string) {
+  const notes = cardOf(shown, team).notes;
+  if (!notes) throw new Error(`${team}'s Specific card has no notes`);
+  return notes;
+}
+
 describe("Specific Stage", () => {
   it("draws one card per Station team in Station order, Red row then Blue row, each headed like the team's column", () => {
     const shown = tables(quals5());
@@ -58,7 +64,7 @@ describe("Specific Stage", () => {
 
   it("lists only the categories someone wrote about, each with its stars, avg when more than one rating went in and the latest note in full", () => {
     // two scouters rated 1690's General - nobody wrote about its Scoring, Delivery, Intake, Defense or Stealing
-    expect(cardOf(tables(quals5()), "1690").notes?.categories).toMatchObject([
+    expect(notesOn(tables(quals5()), "1690").categories).toMatchObject([
       { label: "General", stars: 4, average: true, latest: "Very consistent cycles" },
       { label: "Driving", stars: 5, average: false, latest: "נהג מהיר ומדויק" },
       { label: "Climbing", stars: 5, average: false, latest: "Climbs L3 every match" },
@@ -70,21 +76,21 @@ describe("Specific Stage", () => {
       (notesOf(copy, 1690).categories as JsonObject[])[0].older = 3;
     });
 
-    expect(cardOf(tables(quals5()), "1690").notes.categories.map((category) => category.more)).toEqual(["+1 more note", null, null]);
-    expect(cardOf(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").notes.categories[0].more).toBe("+3 more notes");
+    expect(notesOn(tables(quals5()), "1690").categories.map((category) => category.more)).toEqual(["+1 more note", null, null]);
+    expect(notesOn(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").categories[0].more).toBe("+3 more notes");
   });
 
   it("says how many scouters wrote about the team once more than one did", () => {
     const shown = tables(quals5());
 
     // two scouters wrote about 1690, one about 2230, and 3339's only scouter gave stars without writing
-    expect(["1690", "2230", "3339", "4590"].map((team) => cardOf(shown, team).notes.scouters)).toEqual(["2 scouters", null, null, null]);
+    expect(["1690", "2230", "3339", "4590"].map((team) => notesOn(shown, team).scouters)).toEqual(["2 scouters", null, null, null]);
   });
 
   it("marks a team whose defense a scouter starred", () => {
     const shown = tables(quals5());
 
-    expect(shown.columns.map(({ team }) => [team, cardOf(shown, team).notes.defenseStarred])).toEqual([
+    expect(shown.columns.map(({ team }) => [team, notesOn(shown, team).defenseStarred])).toEqual([
       ["254", true], ["4590", false], ["2230", false], ["1690", false], ["1657", false], ["3339", false],
     ]);
   });
@@ -94,7 +100,13 @@ describe("Specific Stage", () => {
       (notesOf(copy, 1690).categories as JsonObject[])[2].latest = "L3 בכל משחק";
     });
 
-    expect(cardOf(tables(quals5()), "1690").notes.categories.map((category) => category.direction)).toEqual(["ltr", "rtl", "ltr"]);
-    expect(cardOf(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").notes.categories[2].direction).toBe("rtl");
+    expect(notesOn(tables(quals5()), "1690").categories.map((category) => category.direction)).toEqual(["ltr", "rtl", "ltr"]);
+    expect(notesOn(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").categories[2].direction).toBe("rtl");
+  });
+
+  it("gives a team without Team Stats a card with no notes, headed No data like its column", () => {
+    const card = cardOf(tables(quals5(["254", "4590", "5987"])), "5987");
+
+    expect([card.column.noData, card.notes]).toEqual([true, null]);
   });
 });
