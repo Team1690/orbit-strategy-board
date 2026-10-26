@@ -1,8 +1,9 @@
-import type { JsonValue, MatchPacket, TeamStatsFetch } from "$lib/native/types";
+import type { JsonValue, MatchPacket, TeamStatsAnswer, TeamStatsFetch } from "$lib/native/types";
 
 import { isObject } from "./json";
 import { packetLineup } from "./reassign";
 import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
+import { matchEventKey } from "./sync";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 
 export const TEAM_STATS_FORMAT_VERSION = 1;
@@ -46,7 +47,7 @@ export interface StatsStage {
 export type StatsView =
   | { kind: "loading" }
   | { kind: "notice"; title: string; detail: string | null }
-  | { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[] };
+  | { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null };
 
 interface PublishedRow {
   label: string;
@@ -84,6 +85,13 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
+function eventBanner(packet: MatchPacket, answer: TeamStatsAnswer) {
+  const eventKey = matchEventKey(packet);
+  const event = answer.team_stats[0]?.event;
+  if (event === undefined || event === eventKey) return null;
+  return { title: `Team Stats from ${event}`, detail: `This Match is from ${eventKey}.` };
+}
+
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
@@ -118,5 +126,5 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     });
     return { label, chosen: label === chosen, rows };
   });
-  return { kind: "stats", columns, stages };
+  return { kind: "stats", columns, stages, eventBanner: eventBanner(packet, lastFetch.answer) };
 }
