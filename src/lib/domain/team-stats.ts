@@ -123,6 +123,8 @@ function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | u
       const raw = rows[index] ? rawNumber(rows[index].value) : null;
       return raw === null ? [] : [{ index, raw }];
     });
+    // a lone number would look like a win it isn't
+    if (numbers.length < 2) return [];
     const best = pick(...numbers.map(({ raw }) => raw));
     return numbers.filter(({ raw }) => raw === best).map(({ index }) => index);
   }));

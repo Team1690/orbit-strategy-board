@@ -60,6 +60,13 @@ describe("Best on each alliance", () => {
     expect(best(tables(["2230", "3075", "5654"]), "Pit", "Stopped").red).toEqual(["3075"]);
   });
 
+  it("draws nothing brighter on an alliance until two of its teams have a number", () => {
+    const shown = tables();
+
+    expect(best(shown, "Pit", "EPA")).toEqual({ red: [], blue: [] });
+    expect(best(shown, "Pit", "BPS")).toEqual({ red: ["254"], blue: ["1690"] });
+  });
+
   it("leaves a row plain where neither way is better", () => {
     expect(best(tables(), "Pit", "Weight")).toEqual({ red: [], blue: [] });
   });
