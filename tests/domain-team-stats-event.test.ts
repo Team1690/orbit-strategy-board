@@ -74,4 +74,12 @@ describe("Stats tab banner for a Match from another event", () => {
 
     expect(banner(synced(isde1, "Quals 2"), answer)).toEqual({ title: "Team Stats from 2026isde3", detail: "This Match is from 2026isde1." });
   });
+
+  it("names each event when the Match's teams have Team Stats from more than one", () => {
+    const answer = edited((copy) => {
+      copy.team_stats.push({ ...copy.team_stats[0], team_number: 9740, event: "2026isde1" });
+    });
+
+    expect(banner(synced(isde1, "Quals 2"), answer)).toEqual({ title: "Team Stats from 2026isde1 and 2026isde3", detail: "This Match is from 2026isde1." });
+  });
 });

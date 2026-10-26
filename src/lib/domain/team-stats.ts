@@ -85,13 +85,14 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
+// another event's rows can linger after the scouting app moves on - so go by the numbers on screen and fall back on every row when the match's teams have none
 function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer) {
   const eventKey = matchEventKey(packet);
   const rows = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
   const shown = teams.flatMap((team) => rows.get(teamNumberKey(team) ?? "") ?? []);
-  const event = (shown.length ? shown : answer.team_stats)[0]?.event;
-  if (eventKey === null || !event || event === eventKey) return null;
-  return { title: `Team Stats from ${event}`, detail: `This Match is from ${eventKey}.` };
+  const events = unique((shown.length ? shown : answer.team_stats).map((row) => row.event).filter(Boolean));
+  if (eventKey === null || events.every((event) => event === eventKey)) return null;
+  return { title: `Team Stats from ${events.join(" and ")}`, detail: `This Match is from ${eventKey}.` };
 }
 
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
