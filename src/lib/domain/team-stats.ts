@@ -328,7 +328,7 @@ function estimatedPoints(payload: JsonValue | undefined): number | null {
 
 // the teams whose numbers count for their alliance - every sum and every best
 function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number[] {
-  return columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
+  return columns.flatMap((column, index) => column.alliance === alliance && !column.bench ? [index] : []);
 }
 
 // a kind this board can't draw shows a dash - so its number can't be the best

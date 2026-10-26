@@ -37,4 +37,9 @@ describe("Bench Teams on the Stats tab", () => {
       ["Blue 1", "1690", false], ["Blue 2", "1657", false], ["Blue 3", "3339", false], ["Blue Bench", "3075", true],
     ]);
   });
+
+  it("leaves Bench Teams out of the estimated score", () => {
+    // the Station teams alone, as in Quals 5 - 5654 and 3075 would make it 128 vs 184
+    expect(tables(synced(playoff1)).estimatedScores).toEqual({ red: "119", blue: "129" });
+  });
 });
