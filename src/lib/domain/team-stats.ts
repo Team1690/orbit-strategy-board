@@ -37,10 +37,32 @@ export interface StatsRow {
   cells: Array<StatsCell | null>;
 }
 
+export interface StatsGridCell {
+  text: string;
+  // reads nought - drawn faint so the cells with something in them stand out
+  zero: boolean;
+}
+
+export interface StatsTeamGrid {
+  rows: string[];
+  columns: string[];
+  // one list per row label, each as long as columns
+  cells: StatsGridCell[][];
+}
+
+export interface StatsGrid {
+  label: string;
+  explanation: string | null;
+  // one per column - null where the team has no grid to draw
+  teams: Array<StatsTeamGrid | null>;
+}
+
 export interface StatsStage {
   label: string;
   chosen: boolean;
   rows: StatsRow[];
+  // drawn below the Stage's table
+  grids: StatsGrid[];
 }
 
 export type StatsView =
@@ -84,6 +106,35 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
+const NOUGHT = /^0+(\/0+)*$/;
+
+function isTexts(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+// a grid whose cells don't line up with its labels has nothing sure to draw
+function teamGrid(value: JsonValue): StatsTeamGrid | null {
+  if (!isObject(value) || value.kind !== "grid") return null;
+  const { rows, columns, cells } = value;
+  if (!isTexts(rows) || !isTexts(columns) || !Array.isArray(cells)) return null;
+  const lines = cells.filter((line): line is string[] => isTexts(line) && line.length === columns.length);
+  if (lines.length !== cells.length || cells.length !== rows.length) return null;
+  return { rows, columns, cells: lines.map((line) => line.map((text) => ({ text, zero: NOUGHT.test(text) }))) };
+}
+
+// a row is a grid when any team sends it as one, so it never also shows in the table as dashes
+function stageGrids(teamStages: Array<PublishedStage | undefined>, columns: StatsColumn[]): StatsGrid[] {
+  const labels = unique(teamStages.flatMap((stage) => stage?.rows.filter((row) => isObject(row.value) && row.value.kind === "grid").map((row) => row.label) ?? []));
+  return labels.map((label) => {
+    const teamRows = teamStages.map((stage) => stage?.rows.find((row) => row.label === label));
+    return {
+      label,
+      explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
+      teams: teamRows.map((row, index) => (row && !columns[index].noData ? teamGrid(row.value) : null)),
+    };
+  });
+}
+
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
@@ -108,7 +159,9 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   const chosen = chosenStage !== null && labels.includes(chosenStage) ? chosenStage : labels[0];
   const stages = labels.map((label) => {
     const teamStages = stagesByTeam.map((stages) => stages.find((stage) => stage.label === label));
-    const rows = unique(teamStages.flatMap((stage) => stage?.rows.map((row) => row.label) ?? [])).map((rowLabel) => {
+    const grids = stageGrids(teamStages, columns);
+    const rowLabels = unique(teamStages.flatMap((stage) => stage?.rows.map((row) => row.label) ?? [])).filter((rowLabel) => !grids.some((grid) => grid.label === rowLabel));
+    const rows = rowLabels.map((rowLabel) => {
       const teamRows = teamStages.map((stage) => stage?.rows.find((row) => row.label === rowLabel));
       return {
         label: rowLabel,
@@ -116,7 +169,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
         cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-" }),
       };
     });
-    return { label, chosen: label === chosen, rows };
+    return { label, chosen: label === chosen, rows, grids };
   });
   return { kind: "stats", columns, stages };
 }
