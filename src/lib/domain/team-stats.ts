@@ -9,6 +9,7 @@ import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
 const MINUTE_MS = 60_000;
+const UNREACHABLE = "Can't reach the database";
 
 export interface StatsViewInput {
   // null until the first fetch answers
@@ -180,9 +181,15 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   if (lastFetch.kind === "not-set-up") {
     return { kind: "notice", title: "Team Stats aren't set up in this build", detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild." };
   }
-  if (lastFetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: lastFetch.detail };
+  // what the tablet kept stays on screen while the database can't be reached
+  const answer = (lastFetch.kind === "ok" ? lastFetch : lastFetch.cached)?.answer;
+  if (!answer?.team_stats.length) {
+    return lastFetch.kind === "unreachable"
+      ? { kind: "notice", title: UNREACHABLE, detail: lastFetch.detail }
+      : { kind: "notice", title: "No Team Stats have been published yet", detail: "They show up here once a Synced Scouting App device at Strategy role or above publishes them." };
+  }
   const lineup = packetLineup(packet);
-  const published = new Map(lastFetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
+  const published = new Map(answer.team_stats.map((team) => [String(team.team_number), team.payload]));
   const teams = STATIONS.flatMap((station) => {
     const team = lineup[station].trim();
     return team ? [{ station, team, payload: published.get(teamNumberKey(team) ?? "") }] : [];
@@ -213,7 +220,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   });
   return {
     kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
-    eventBanner: eventBanner(packet, teams.map(({ team }) => team), lastFetch.answer),
-    freshness: { confirmed: confirmedAgo(lastFetch.answer, now), unreachable: null },
+    eventBanner: eventBanner(packet, teams.map(({ team }) => team), answer),
+    freshness: { confirmed: confirmedAgo(answer, now), unreachable: lastFetch.kind === "unreachable" ? { title: UNREACHABLE, detail: lastFetch.detail } : null },
   };
 }

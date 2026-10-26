@@ -56,3 +56,41 @@ describe("Stats tab freshness", () => {
     expect(tables({ kind: "ok", answer: answer(null) }, confirmedAt).freshness.confirmed).toBe("Not Confirmed yet");
   });
 });
+
+describe("Stats tab when the database can't be reached", () => {
+  it("keeps the numbers the tablet kept on screen and says it can't reach the database", () => {
+    const now = confirmedAt + 2 * HOUR;
+    const online = tables({ kind: "ok", answer: answer() }, now);
+    const offline = tables({ kind: "unreachable", detail: "fetch failed", cached: { answer: answer(), fetchedAt: confirmedAt + MINUTE } }, now);
+
+    expect(offline.freshness).toEqual({ confirmed: "Confirmed 2 hours ago", unreachable: { title: "Can't reach the database", detail: "fetch failed" } });
+    expect({ ...offline, freshness: online.freshness }).toEqual(online);
+  });
+
+  it("still names the event the numbers it kept are from", () => {
+    const fromIsde1 = newMatchPacket({ matchName: "Quals 2", redTeams: ["254", "4590", "2230"], blueTeams: ["1690", "1657", "3339"], tbaEventKey: "2026isde1" }, "isde1-quals-2");
+
+    expect(tables({ kind: "unreachable", detail: "fetch failed", cached: { answer: answer(), fetchedAt: confirmedAt } }, confirmedAt, fromIsde1).eventBanner)
+      .toEqual({ title: "Team Stats from 2026isde3", detail: "This Match is from 2026isde1." });
+  });
+
+  it("says it can't reach the database when the tablet kept no Team Stats", () => {
+    const nothing = { team_stats: [], team_stats_confirmed: [] };
+
+    expect(view({ kind: "unreachable", detail: "signal timed out", cached: { answer: nothing, fetchedAt: confirmedAt } }, confirmedAt)).toEqual({
+      kind: "notice",
+      title: "Can't reach the database",
+      detail: "signal timed out",
+    });
+  });
+});
+
+describe("Stats tab before anything is published", () => {
+  it("says no Team Stats have been published yet when the database has none", () => {
+    expect(view({ kind: "ok", answer: { team_stats: [], team_stats_confirmed: [] } }, confirmedAt)).toEqual({
+      kind: "notice",
+      title: "No Team Stats have been published yet",
+      detail: "They show up here once a Synced Scouting App device at Strategy role or above publishes them.",
+    });
+  });
+});
