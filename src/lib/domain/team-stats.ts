@@ -106,7 +106,7 @@ function estimatedPoints(payload: JsonValue | undefined): number | null {
   return isObject(payload) && typeof payload.estimated_points === "number" ? payload.estimated_points : null;
 }
 
-// the teams whose numbers make up their alliance's score, totals and best
+// the teams whose numbers count for their alliance - every sum and every best
 function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number[] {
   return columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
 }
