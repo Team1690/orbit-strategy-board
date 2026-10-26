@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { newMatchPacket, statsView, type StatsViewInput } from "$lib/domain";
-import type { TeamStatsAnswer } from "$lib/native/types";
+import type { JsonObject, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
 
@@ -45,5 +45,17 @@ describe("Active Faults and Robot Tags", () => {
       ]],
       ["Auto", []], ["Tele", []], ["Endgame", []],
     ]);
+  });
+
+  it("shows no faults or tags for a team whose Team Stats were published before either existed", () => {
+    const answer = structuredClone(fixture);
+    const orbit = answer.team_stats.find((row) => row.team_number === 1690)?.payload as JsonObject | undefined;
+    if (!orbit) throw new Error("no Team Stats for 1690 in the fixture");
+    delete orbit.active_faults;
+    delete orbit.robot_tags;
+    const shown = tables({ lastFetch: { kind: "ok", answer } });
+
+    expect(shown.columns.filter(({ team }) => team === "1690").map(({ activeFaults, robotTags }) => [activeFaults, robotTags])).toEqual([[0, []]]);
+    expect(shown.stages[0].faults.map(({ column }) => column.team)).toEqual(["2230"]);
   });
 });
