@@ -59,4 +59,8 @@ describe("Best on each alliance", () => {
   it("draws the lowest number brighter where lower is better", () => {
     expect(best(tables(["2230", "3075", "5654"]), "Pit", "Stopped").red).toEqual(["3075"]);
   });
+
+  it("leaves a row plain where neither way is better", () => {
+    expect(best(tables(), "Pit", "Weight")).toEqual({ red: [], blue: [] });
+  });
 });

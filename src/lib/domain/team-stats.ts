@@ -115,7 +115,9 @@ function rawNumber(value: JsonValue): number | null {
 }
 
 function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | undefined>): Set<number> {
-  const pick = rows.find((row) => row)?.direction === "lower" ? Math.min : Math.max;
+  const direction = rows.find((row) => row)?.direction;
+  if (!direction) return new Set();
+  const pick = direction === "higher" ? Math.max : Math.min;
   return new Set((["red", "blue"] as const).flatMap((alliance) => {
     const numbers = stationColumns(columns, alliance).flatMap((index) => {
       const raw = rows[index] ? rawNumber(rows[index].value) : null;
