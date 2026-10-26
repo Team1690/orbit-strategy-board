@@ -22,4 +22,13 @@ describe("Active Faults and Robot Tags", () => {
       ["254", 0], ["4590", 0], ["2230", 1], ["1690", 2], ["1657", 0], ["3339", 0],
     ]);
   });
+
+  it("shows each team's Robot Tags in their colors on its column header", () => {
+    const defender = { name: "Defender", color: "#e91e63" };
+    const fastClimber = { name: "Fast climber", color: "#4caf50" };
+
+    expect(tables().columns.map(({ team, robotTags }) => [team, robotTags])).toEqual([
+      ["254", [defender, fastClimber]], ["4590", []], ["2230", [defender]], ["1690", [fastClimber]], ["1657", []], ["3339", []],
+    ]);
+  });
 });

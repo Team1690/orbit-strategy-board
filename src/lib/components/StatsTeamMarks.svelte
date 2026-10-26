@@ -4,11 +4,16 @@
   let { column }: { column: StatsColumn } = $props();
 </script>
 
-{#if column.activeFaults}
+{#if column.activeFaults || column.robotTags.length}
   <div class="marks">
-    <span class="fault-marker" role="img" aria-label={`${column.activeFaults} Active ${column.activeFaults === 1 ? "Fault" : "Faults"}`}>
-      <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{column.activeFaults}
-    </span>
+    {#if column.activeFaults}
+      <span class="fault-marker" role="img" aria-label={`${column.activeFaults} Active ${column.activeFaults === 1 ? "Fault" : "Faults"}`}>
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{column.activeFaults}
+      </span>
+    {/if}
+    {#each column.robotTags as tag}
+      <span class="tag" style:--tag={tag.color} dir="auto">{tag.name}</span>
+    {/each}
   </div>
 {/if}
 
@@ -31,5 +36,18 @@
     color: #ffffff;
     font-size: 0.8rem;
     font-weight: 700;
+  }
+  .tag {
+    max-width: 100%;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--tag) 55%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tag) 18%, transparent);
+    color: var(--tag);
+    font-size: 0.75rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>
