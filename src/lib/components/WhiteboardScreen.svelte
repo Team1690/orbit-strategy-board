@@ -12,6 +12,7 @@
   import ChecklistPanel from "./ChecklistPanel.svelte";
   import InkPicker from "./InkPicker.svelte";
   import SaveCommonPathModal from "./SaveCommonPathModal.svelte";
+  import StatsPanel from "./StatsPanel.svelte";
 
   let { pngRequest = 0, onNotice = () => {} }: { pngRequest?: number; onNotice?: (message: string) => void } = $props();
 
@@ -290,7 +291,11 @@
         </div>
 
         {#if !ui.isCanvasVisible}
-          <div id="whiteboard-stats-container" class="w-full flex-1 min-h-0 m-0 p-0 bg-[#0d0d0d] flex flex-col overflow-y-auto"></div>
+          <div id="whiteboard-stats-container" class="w-full flex-1 min-h-0 m-0 p-0 bg-[#0d0d0d] flex flex-col">
+            {#if app.activeMatch}
+              <StatsPanel packet={app.activeMatch.packet} />
+            {/if}
+          </div>
         {/if}
 
         {#if ui.isCanvasVisible}
