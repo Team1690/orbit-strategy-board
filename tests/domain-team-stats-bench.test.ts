@@ -116,3 +116,13 @@ describe("Bench Teams on the Stats tab", () => {
     ]);
   });
 });
+
+describe("Best on an alliance that ties throughout", () => {
+  it("draws nobody brighter on an alliance where every team with a number shares the best", () => {
+    const shown = tables(synced(quals5));
+
+    // blue's three teams all have 100% and red's two numbers are both 0.0
+    expect(best(shown, "Pit", "Drive Uptime")).toEqual({ red: ["254"], blue: [] });
+    expect(best(shown, "Tele", "Avg Full Court")).toEqual({ red: [], blue: ["1690"] });
+  });
+});
