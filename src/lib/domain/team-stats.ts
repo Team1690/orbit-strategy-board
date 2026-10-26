@@ -37,10 +37,22 @@ export interface StatsRow {
   cells: Array<StatsCell | null>;
 }
 
+export interface StatsCard {
+  // headed like the team's column in the tables
+  column: StatsColumn;
+}
+
+export interface StatsCardRow {
+  alliance: AllianceColor;
+  cards: StatsCard[];
+}
+
 export interface StatsStage {
   label: string;
   chosen: boolean;
   rows: StatsRow[];
+  // a Stage of notes draws a card per team instead of a table
+  cardRows: StatsCardRow[];
 }
 
 export type StatsView =
@@ -84,6 +96,20 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
+function notesIn(payload: JsonValue | undefined, label: string): Record<string, unknown> | null {
+  if (!isObject(payload) || !Array.isArray(payload.stages)) return null;
+  const stage = payload.stages.find((candidate) => isObject(candidate) && candidate.label === label);
+  return isObject(stage) && isObject(stage.notes) ? stage.notes : null;
+}
+
+// grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up in its row
+function cardRows(cards: StatsCard[]): StatsCardRow[] {
+  return (["red", "blue"] as const).flatMap((alliance) => {
+    const row = cards.filter((card) => card.column.alliance === alliance);
+    return row.length ? [{ alliance, cards: row }] : [];
+  });
+}
+
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
@@ -116,7 +142,8 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
         cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-" }),
       };
     });
-    return { label, chosen: label === chosen, rows };
+    const notes = teams.map(({ payload }) => notesIn(payload, label));
+    return { label, chosen: label === chosen, rows, cardRows: notes.some(Boolean) ? cardRows(columns.map((column) => ({ column }))) : [] };
   });
   return { kind: "stats", columns, stages };
 }
