@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { StatsTeamFaults } from "$lib/domain";
+  import { textDirection, type StatsTeamFaults } from "$lib/domain";
 
   let { teams }: { teams: StatsTeamFaults[] } = $props();
 </script>
@@ -23,9 +23,9 @@
                   <span class="scouters">{fault.scouters}</span>
                 {/if}
               </div>
-              <p class="message" dir="auto">{fault.message}</p>
+              <p class="message" dir={textDirection(fault.message)}>{fault.message}</p>
               {#if fault.resolution}
-                <p class="resolution" dir="auto">{fault.resolution}</p>
+                <p class="resolution" dir={textDirection(fault.resolution)}>{fault.resolution}</p>
               {/if}
             </li>
           {/each}
