@@ -88,7 +88,7 @@ function unique(labels: string[]): string[] {
 function eventBanner(packet: MatchPacket, answer: TeamStatsAnswer) {
   const eventKey = matchEventKey(packet);
   const event = answer.team_stats[0]?.event;
-  if (event === undefined || event === eventKey) return null;
+  if (eventKey === null || event === undefined || event === eventKey) return null;
   return { title: `Team Stats from ${event}`, detail: `This Match is from ${eventKey}.` };
 }
 
