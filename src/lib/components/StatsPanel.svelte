@@ -5,7 +5,7 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { statsView, type StatsColumn, type StatsMark } from "$lib/domain";
+  import { ALLIANCES, statsView, type StatsColumn, type StatsMark } from "$lib/domain";
   import { native } from "$lib/native/api";
   import type { MatchPacket, TeamStatsFetch } from "$lib/native/types";
   import { boardConfig } from "$lib/stores/config.svelte";
@@ -16,7 +16,6 @@
 
   let { packet }: { packet: MatchPacket } = $props();
 
-  const ALLIANCES = ["red", "blue"] as const;
   const REFRESH_MS = 60_000;
   const CLOCK_MS = 15_000;
 

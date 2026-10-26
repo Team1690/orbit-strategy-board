@@ -1,9 +1,9 @@
-import type { JsonValue, MatchPacket, TeamStatsAnswer, TeamStatsFetch } from "$lib/native/types";
+import type { JsonValue, MatchPacket, TeamStats, TeamStatsAnswer, TeamStatsFetch } from "$lib/native/types";
 
 import { readExtras } from "./extras";
 import { isObject } from "./json";
 import { packetLineup } from "./reassign";
-import { ALLIANCE_STATIONS, OUR_TEAM, STATION_NAMES, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
+import { ALLIANCE_STATIONS, ALLIANCES, OUR_TEAM, STATION_NAMES, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
 import { matchEventKey } from "./sync";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 import { textDirection, type TextDirection } from "./text-direction";
@@ -246,6 +246,11 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
+function rowsLabelled(teamStages: Array<PublishedStage | undefined>, label: string) {
+  const rows = teamStages.map((stage) => stage?.rows.find((row) => row.label === label));
+  return { rows, explanation: rows.find((row) => row?.explanation)?.explanation ?? null };
+}
+
 const NOUGHT = /^0+(\/0+)*$/;
 
 function isTexts(value: unknown): value is string[] {
@@ -266,12 +271,8 @@ function teamGrid(value: JsonValue): StatsTeamGrid | null {
 function stageGrids(teamStages: Array<PublishedStage | undefined>, columns: StatsColumn[]): StatsGrid[] {
   const labels = unique(teamStages.flatMap((stage) => stage?.rows.filter((row) => isObject(row.value) && row.value.kind === "grid").map((row) => row.label) ?? []));
   return labels.map((label) => {
-    const teamRows = teamStages.map((stage) => stage?.rows.find((row) => row.label === label));
-    return {
-      label,
-      explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
-      teams: teamRows.map((row, index) => (row && !columns[index].noData ? teamGrid(row.value) : null)),
-    };
+    const { rows, explanation } = rowsLabelled(teamStages, label);
+    return { label, explanation, teams: rows.map((row, index) => (row && !columns[index].noData ? teamGrid(row.value) : null)) };
   });
 }
 
@@ -285,8 +286,12 @@ function count(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+export function plural(count: number, unit: string): string {
+  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
 function moreNotes(older: number): string | null {
-  return older > 0 ? `+${older} more ${older === 1 ? "note" : "notes"}` : null;
+  return older > 0 ? `+${plural(older, "more note")}` : null;
 }
 
 function noteCategories(categories: unknown): StatsNoteCategory[] {
@@ -316,7 +321,7 @@ function stageNotes(notes: Record<string, unknown> | null): StatsNotes {
 
 // grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up in its row
 function cardRows(cards: StatsCard[]): StatsCardRow[] {
-  return (["red", "blue"] as const).flatMap((alliance) => {
+  return ALLIANCES.flatMap((alliance) => {
     const row = cards.filter((card) => card.column.alliance === alliance);
     return row.length ? [{ alliance, cards: row }] : [];
   });
@@ -328,7 +333,7 @@ const BENCHES = { red: { place: "redBench", placeName: "Red Bench" }, blue: { pl
 function columnTeams(packet: MatchPacket) {
   const lineup = packetLineup(packet);
   const bench = readExtras(packet).bench ?? {};
-  return (["red", "blue"] as const).flatMap((alliance) => [
+  return ALLIANCES.flatMap((alliance) => [
     ...ALLIANCE_STATIONS[alliance].map((station) => ({ place: station, placeName: STATION_NAMES[station], alliance, team: lineup[station].trim(), bench: false })),
     { ...BENCHES[alliance], alliance, team: bench[alliance]?.trim() ?? "", bench: true },
   ].filter(({ team }) => team));
@@ -352,7 +357,7 @@ function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | u
   const direction = rows.find((row) => row)?.direction;
   if (!direction) return new Set();
   const pick = direction === "higher" ? Math.max : Math.min;
-  return new Set((["red", "blue"] as const).flatMap((alliance) => {
+  return new Set(ALLIANCES.flatMap((alliance) => {
     const numbers = stationIndexes(columns, alliance).flatMap((index) => {
       const raw = rawNumber(rows[index]?.value);
       return raw === null ? [] : [{ index, raw }];
@@ -376,17 +381,11 @@ function allianceSums(columns: StatsColumn[], values: Array<number | null>): Rec
 
 // the last event's rows can linger after the scouting app moves on - so go by the numbers on screen
 // and by every row when the match's teams have none - the banner then explains their no data columns
-function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer): StatsNotice | null {
+function eventBanner(packet: MatchPacket, shown: TeamStats[], answer: TeamStatsAnswer): StatsNotice | null {
   const eventKey = matchEventKey(packet);
-  const rows = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
-  const shown = teams.flatMap((team) => rows.get(teamNumberKey(team) ?? "") ?? []);
   const events = unique((shown.length ? shown : answer.team_stats).map((row) => row.event).filter(Boolean));
   if (eventKey === null || events.every((event) => event === eventKey)) return null;
   return { title: `Team Stats from ${events.join(" and ")}`, detail: `This Match is from ${eventKey}.` };
-}
-
-function plural(count: number, unit: string): string {
-  return `${count} ${unit}${count === 1 ? "" : "s"}`;
 }
 
 // a server clock ahead of the tablet's would read as a time to come
@@ -413,8 +412,11 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   if (answer.team_stats.some(({ payload }) => tooNew(payload))) {
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
   }
-  const published = new Map(answer.team_stats.map((team) => [String(team.team_number), team.payload]));
-  const teams = columnTeams(packet).map((column) => ({ ...column, payload: published.get(teamNumberKey(column.team) ?? "") }));
+  const published = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
+  const teams = columnTeams(packet).map((column) => {
+    const row = published.get(teamNumberKey(column.team) ?? "");
+    return { ...column, row, payload: row?.payload };
+  });
   const faultsByTeam = teams.map(({ payload }) => publishedFaults(payload));
   const columns = teams.map(({ place, placeName, alliance, team, bench, payload }, index) => ({
     place, placeName, alliance,
@@ -430,11 +432,11 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     const grids = stageGrids(teamStages, columns);
     const rowLabels = unique(teamStages.flatMap((stage) => stage?.rows.map((row) => row.label) ?? [])).filter((rowLabel) => !grids.some((grid) => grid.label === rowLabel));
     const rows = rowLabels.map((rowLabel) => {
-      const teamRows = teamStages.map((stage) => stage?.rows.find((row) => row.label === rowLabel));
+      const { rows: teamRows, explanation } = rowsLabelled(teamStages, rowLabel);
       const best = bestOnEachAlliance(columns, teamRows);
       return {
         label: rowLabel,
-        explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
+        explanation,
         cells: teamRows.map((row, index) => columns[index].noData ? null : { ...(row ? cell(row.value) : { text: "-" }), ...(best.has(index) ? { best: true } : {}) }),
       };
     });
@@ -446,7 +448,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   });
   return {
     kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
-    eventBanner: eventBanner(packet, teams.map(({ team }) => team), answer),
+    eventBanner: eventBanner(packet, teams.flatMap(({ row }) => row ?? []), answer),
     freshness: { confirmed: confirmedAgo(answer, now), unreachable: lastFetch.kind === "unreachable" ? { title: UNREACHABLE, detail: lastFetch.detail } : null },
   };
 }

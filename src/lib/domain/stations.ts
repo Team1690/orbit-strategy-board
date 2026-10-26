@@ -7,7 +7,8 @@ export function teamNumberKey(team: string): string | null {
 
 export const STATIONS = ["redOne", "redTwo", "redThree", "blueOne", "blueTwo", "blueThree"] as const;
 export type StationKey = (typeof STATIONS)[number];
-export type AllianceColor = "red" | "blue";
+export const ALLIANCES = ["red", "blue"] as const;
+export type AllianceColor = (typeof ALLIANCES)[number];
 
 export const ALLIANCE_STATIONS: Readonly<Record<AllianceColor, readonly StationKey[]>> = { red: ["redOne", "redTwo", "redThree"], blue: ["blueOne", "blueTwo", "blueThree"] };
 export const STATION_NAMES: Readonly<Record<StationKey, string>> = { redOne: "Red 1", redTwo: "Red 2", redThree: "Red 3", blueOne: "Blue 1", blueTwo: "Blue 2", blueThree: "Blue 3" };
