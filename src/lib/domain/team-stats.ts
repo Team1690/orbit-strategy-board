@@ -93,9 +93,9 @@ export function statsView({ fetch, packet, chosenStage, teamColors, autoLighten 
   if (fetch.kind === "unreachable") return { kind: "notice", title: "Can't reach the database", detail: fetch.detail };
   const lineup = packetLineup(packet);
   const published = new Map(fetch.answer.team_stats.map((team) => [String(team.team_number), team.payload]));
-  const teams = STATIONS.map((station) => {
+  const teams = STATIONS.flatMap((station) => {
     const team = lineup[station].trim();
-    return { station, team, payload: published.get(teamNumberKey(team) ?? "") };
+    return team ? [{ station, team, payload: published.get(teamNumberKey(team) ?? "") }] : [];
   });
   if (teams.some(({ payload }) => tooNew(payload))) {
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };

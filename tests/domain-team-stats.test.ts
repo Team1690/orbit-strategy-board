@@ -54,6 +54,10 @@ describe("Stats tab", () => {
     ]);
   });
 
+  it("leaves out a Station with no team", () => {
+    expect(tables(quals5(["254", " ", "2230"], ["1690", "", "3339"])).columns.map((column) => column.stationName)).toEqual(["Red 1", "Red 3", "Blue 1", "Blue 3"]);
+  });
+
   it("heads each column with its team number in its Team Color", () => {
     const columns = tables(quals5(), { teamColors: { "254": "#ff8800" }, autoLighten: true }).columns;
 
