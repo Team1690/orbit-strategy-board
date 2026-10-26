@@ -54,13 +54,16 @@ export interface StatsAlliance {
 export interface StatsTag {
   name: string;
   color: string;
+  dir: TextDirection;
 }
 
 export interface StatsFault {
   match: string;
   status: string;
   message: string;
+  messageDir: TextDirection;
   resolution: string | null;
+  resolutionDir: TextDirection;
   // "2/3 scouters" - only for a fault off a double-scouted match
   scouters: string | null;
 }
@@ -212,19 +215,23 @@ function publishedList(payload: JsonValue | undefined, key: string): unknown[] {
 }
 
 function publishedTags(payload: JsonValue | undefined): StatsTag[] {
-  return publishedList(payload, "robot_tags").flatMap((tag) => isObject(tag) && typeof tag.name === "string" && typeof tag.color === "string" ? [{ name: tag.name, color: tag.color }] : []);
+  return publishedList(payload, "robot_tags").flatMap((tag) => isObject(tag) && typeof tag.name === "string" && typeof tag.color === "string" ? [{ name: tag.name, color: tag.color, dir: textDirection(tag.name) }] : []);
 }
 
 function publishedFaults(payload: JsonValue | undefined): StatsFault[] {
-  return publishedList(payload, "active_faults").flatMap((fault) => isObject(fault) && typeof fault.message === "string"
-    ? [{
+  return publishedList(payload, "active_faults").flatMap((fault) => {
+    if (!isObject(fault) || typeof fault.message !== "string") return [];
+    const resolution = typeof fault.resolution === "string" ? fault.resolution : null;
+    return [{
       match: typeof fault.match === "string" ? fault.match : "",
       status: typeof fault.status === "string" ? fault.status : "",
       message: fault.message,
-      resolution: typeof fault.resolution === "string" ? fault.resolution : null,
+      messageDir: textDirection(fault.message),
+      resolution,
+      resolutionDir: textDirection(resolution ?? ""),
       scouters: typeof fault.reported_by === "number" && typeof fault.scouters === "number" ? `${fault.reported_by}/${fault.scouters} scouters` : null,
-    }]
-    : []);
+    }];
+  });
 }
 
 function tooNew(payload: JsonValue | undefined): boolean {

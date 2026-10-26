@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { plural, textDirection, type StatsColumn } from "$lib/domain";
+  import { plural, type StatsColumn } from "$lib/domain";
 
   let { column }: { column: StatsColumn } = $props();
 </script>
@@ -12,7 +12,7 @@
       </span>
     {/if}
     {#each column.robotTags as tag}
-      <span class="tag" style:--tag={tag.color} dir={textDirection(tag.name)}>{tag.name}</span>
+      <span class="tag" style:--tag={tag.color} dir={tag.dir}>{tag.name}</span>
     {/each}
   </div>
 {/if}

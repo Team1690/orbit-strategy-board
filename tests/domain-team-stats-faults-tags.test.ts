@@ -24,8 +24,8 @@ describe("Active Faults and Robot Tags", () => {
   });
 
   it("shows each team's Robot Tags in their colors on its column header", () => {
-    const defender = { name: "Defender", color: "#e91e63" };
-    const fastClimber = { name: "Fast climber", color: "#4caf50" };
+    const defender = { name: "Defender", color: "#e91e63", dir: "ltr" };
+    const fastClimber = { name: "Fast climber", color: "#4caf50", dir: "ltr" };
 
     expect(tables().columns.map(({ team, robotTags }) => [team, robotTags])).toEqual([
       ["254", [defender, fastClimber]], ["4590", []], ["2230", [defender]], ["1690", [fastClimber]], ["1657", []], ["3339", []],
@@ -37,14 +37,30 @@ describe("Active Faults and Robot Tags", () => {
 
     expect(listed).toEqual([
       ["Pit", [
-        ["2230", [{ match: "Q2", status: "No progress", message: "Robot dead on field", resolution: null, scouters: null }]],
+        ["2230", [{ match: "Q2", status: "No progress", message: "Robot dead on field", messageDir: "ltr", resolution: null, resolutionDir: "ltr", scouters: null }]],
         ["1690", [
-          { match: "Q1", status: "Unknown", message: "Lost comms", resolution: null, scouters: "2/2 scouters" },
-          { match: "Q2", status: "In progress", message: "Intake jams on the bump", resolution: "New roller tonight", scouters: null },
+          { match: "Q1", status: "Unknown", message: "Lost comms", messageDir: "ltr", resolution: null, resolutionDir: "ltr", scouters: "2/2 scouters" },
+          { match: "Q2", status: "In progress", message: "Intake jams on the bump", messageDir: "ltr", resolution: "New roller tonight", resolutionDir: "ltr", scouters: null },
         ]],
       ]],
       ["Auto", []], ["Tele", []], ["Endgame", []], ["Specific", []],
     ]);
+  });
+
+  it("reads a fault, its resolution note and a tag written in Hebrew right to left, even one that starts with a Latin letter", () => {
+    const answer = structuredClone(fixture);
+    const orbit = answer.team_stats.find((row) => row.team_number === 1690)?.payload as JsonObject | undefined;
+    if (!orbit) throw new Error("no Team Stats for 1690 in the fixture");
+    const [, jams] = orbit.active_faults as JsonObject[];
+    jams.message = "Intake נתקע על הבאמפ";
+    jams.resolution = "רולר חדש הלילה";
+    (orbit.robot_tags as JsonObject[])[0].name = "מטפס מהיר";
+    const shown = tables({ lastFetch: { kind: "ok", answer } });
+
+    expect(shown.stages[0].faults.find(({ column }) => column.team === "1690")?.faults.map(({ messageDir, resolutionDir }) => [messageDir, resolutionDir])).toEqual([
+      ["ltr", "ltr"], ["rtl", "rtl"],
+    ]);
+    expect(shown.columns.find(({ team }) => team === "1690")?.robotTags.map(({ dir }) => dir)).toEqual(["rtl"]);
   });
 
   it("shows no faults or tags for a team whose Team Stats were published before either existed", () => {

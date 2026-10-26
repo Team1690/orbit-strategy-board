@@ -73,7 +73,7 @@ describe("Bench Teams on the Stats tab", () => {
 
   it("marks a Bench Team's header with its Active Faults and Robot Tags like any other team's", () => {
     expect(tables(synced(playoff1)).columns.filter((column) => column.bench).map(({ team, activeFaults, robotTags }) => [team, activeFaults, robotTags])).toEqual([
-      ["5654", 1, [{ name: "Watch intake", color: "#ffc107" }]],
+      ["5654", 1, [{ name: "Watch intake", color: "#ffc107", dir: "ltr" }]],
       ["3075", 0, []],
     ]);
   });
