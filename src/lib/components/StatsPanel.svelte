@@ -49,6 +49,12 @@
       {/if}
     </div>
   {:else}
+    <div id="stats-estimated-score" class="flex items-baseline justify-center gap-3 px-4 md:px-6 pt-4">
+      <span class="caption">Estimated score</span>
+      <span class="score red">{view.estimatedScores.red}</span>
+      <span class="versus">vs</span>
+      <span class="score blue">{view.estimatedScores.blue}</span>
+    </div>
     <div id="stats-stages" class="flex flex-wrap gap-2 px-4 md:px-6 pt-4" role="tablist" aria-label="Stages">
       {#each view.stages as candidate (candidate.label)}
         <button class="stage-tab" class:chosen={candidate.chosen} role="tab" aria-selected={candidate.chosen} onclick={() => choose(candidate.label)}>{candidate.label}</button>
@@ -105,6 +111,22 @@
 </div>
 
 <style>
+  #stats-estimated-score .caption {
+    color: #777;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .score {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .score.red { color: #c97070; }
+  .score.blue { color: #6090c9; }
+  .versus { color: #666; }
+
   .stage-tab {
     padding: 0.45rem 1.1rem;
     border: 1px solid #2a2a2a;

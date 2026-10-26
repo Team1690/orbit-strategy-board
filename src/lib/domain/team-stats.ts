@@ -46,7 +46,7 @@ export interface StatsStage {
 export type StatsView =
   | { kind: "loading" }
   | { kind: "notice"; title: string; detail: string | null }
-  | { kind: "stats"; columns: StatsColumn[]; stages: StatsStage[] };
+  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[] };
 
 interface PublishedRow {
   label: string;
@@ -84,6 +84,20 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
+function estimatedPoints(payload: JsonValue | undefined): number | null {
+  return isObject(payload) && typeof payload.estimated_points === "number" ? payload.estimated_points : null;
+}
+
+// the columns whose numbers make up their alliance's
+function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number[] {
+  return columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
+}
+
+function allianceSums(columns: StatsColumn[], values: Array<number | null>): Record<AllianceColor, string> {
+  const sum = (alliance: AllianceColor) => stationColumns(columns, alliance).reduce((total, index) => total + (values[index] ?? 0), 0).toFixed(0);
+  return { red: sum("red"), blue: sum("blue") };
+}
+
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
@@ -118,5 +132,5 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     });
     return { label, chosen: label === chosen, rows };
   });
-  return { kind: "stats", columns, stages };
+  return { kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages };
 }
