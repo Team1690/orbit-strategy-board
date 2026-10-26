@@ -72,7 +72,7 @@ describe("Stats tab", () => {
   it("has one tab per Stage in the order the Scouting App sends them and opens on Pit", () => {
     const { stages } = tables(quals5());
 
-    expect(stages.map((stage) => stage.label)).toEqual(["Pit", "Auto", "Tele", "Endgame"]);
+    expect(stages.map((stage) => stage.label)).toEqual(["Pit", "Auto", "Tele", "Endgame", "Specific"]);
     expect(stages.filter((stage) => stage.chosen).map((stage) => stage.label)).toEqual(["Pit"]);
   });
 
@@ -80,7 +80,7 @@ describe("Stats tab", () => {
     const chosen = (chosenStage: string) => tables(quals5(), { chosenStage }).stages.filter((stage) => stage.chosen).map((stage) => stage.label);
 
     expect(chosen("Tele")).toEqual(["Tele"]);
-    expect(chosen("Specific")).toEqual(["Pit"]);
+    expect(chosen("Practice")).toEqual(["Pit"]);
   });
 
   it("labels each row once and shows each team's text in Station order", () => {
@@ -118,7 +118,6 @@ describe("Stats tab", () => {
     const pit = stage(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "Pit");
 
     expect(pit.rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
-    expect(pit.rows.find((row) => row.label === "Pass Trench")?.cells).toEqual(Array(6).fill({ text: "-" }));
   });
 
   it("says the board needs updating when a team in the Match has Team Stats in a newer format", () => {
