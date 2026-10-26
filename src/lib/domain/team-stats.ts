@@ -43,6 +43,8 @@ export interface StatsNoteCategory {
   // more than one rating went into the stars
   average: boolean;
   latest: string;
+  // "+N more notes" - null when the latest is the only one
+  more: string | null;
 }
 
 export interface StatsNotes {
@@ -119,6 +121,10 @@ function count(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function moreNotes(older: number): string | null {
+  return older > 0 ? `+${older} more ${older === 1 ? "note" : "notes"}` : null;
+}
+
 function noteCategories(categories: unknown): StatsNoteCategory[] {
   if (!Array.isArray(categories)) return [];
   return categories.flatMap((category) => isObject(category) && typeof category.label === "string"
@@ -127,6 +133,7 @@ function noteCategories(categories: unknown): StatsNoteCategory[] {
       stars: typeof category.stars === "number" ? category.stars : null,
       average: count(category.ratings) > 1,
       latest: typeof category.latest === "string" ? category.latest : "",
+      more: moreNotes(count(category.older)),
     }]
     : []);
 }

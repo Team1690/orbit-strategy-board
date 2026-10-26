@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { newMatchPacket, statsView, type StatsViewInput } from "$lib/domain";
-import type { Alliance, MatchPacket, TeamStatsAnswer } from "$lib/native/types";
+import type { Alliance, JsonObject, MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
 
@@ -22,6 +22,19 @@ function stage(shown: ReturnType<typeof tables>, label: string) {
   const found = shown.stages.find((candidate) => candidate.label === label);
   if (!found) throw new Error(`no ${label} Stage`);
   return found;
+}
+
+function edited(edit: (answer: TeamStatsAnswer) => void): TeamStatsAnswer {
+  const copy = structuredClone(fixture);
+  edit(copy);
+  return copy;
+}
+
+function notesOf(answer: TeamStatsAnswer, team: number): JsonObject {
+  const payload = answer.team_stats.find((candidate) => candidate.team_number === team)?.payload as { stages: JsonObject[] } | undefined;
+  const notes = payload?.stages.find((candidate) => candidate.label === "Specific")?.notes;
+  if (!notes) throw new Error(`no Specific notes for ${team} in the fixture`);
+  return notes as JsonObject;
 }
 
 function cardOf(shown: ReturnType<typeof tables>, team: string) {
@@ -50,5 +63,14 @@ describe("Specific Stage", () => {
       { label: "Driving", stars: 5, average: false, latest: "נהג מהיר ומדויק" },
       { label: "Climbing", stars: 5, average: false, latest: "Climbs L3 every match" },
     ]);
+  });
+
+  it("says how many older notes a category has", () => {
+    const answer = edited((copy) => {
+      (notesOf(copy, 1690).categories as JsonObject[])[0].older = 3;
+    });
+
+    expect(cardOf(tables(quals5()), "1690").notes.categories.map((category) => category.more)).toEqual(["+1 more note", null, null]);
+    expect(cardOf(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").notes.categories[0].more).toBe("+3 more notes");
   });
 });
