@@ -85,7 +85,8 @@ function unique(labels: string[]): string[] {
   return [...new Set(labels)];
 }
 
-// another event's rows can linger after the scouting app moves on - so go by the numbers on screen and fall back on every row when the match's teams have none
+// the last event's rows can linger after the scouting app moves on - so go by the numbers on screen
+// and by every row when the match's teams have none - the banner then explains their no data columns
 function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnswer) {
   const eventKey = matchEventKey(packet);
   const rows = new Map(answer.team_stats.map((row) => [String(row.team_number), row]));
