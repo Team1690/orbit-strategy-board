@@ -67,4 +67,11 @@ describe("Team Stats fetch", () => {
 
     expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "Could not verify JWT: JWSError JWSInvalidSignature" });
   });
+
+  it("reports the database unreachable when the request fails", async () => {
+    buildWith("board-token");
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); }));
+
+    expect(await fetchTeamStats()).toEqual({ kind: "unreachable", detail: "fetch failed" });
+  });
 });

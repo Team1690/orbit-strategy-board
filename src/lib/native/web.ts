@@ -197,16 +197,20 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
 
 async function fetchTeamStats(): Promise<TeamStatsFetch> {
   if (!__HASURA_HTTP_LINK__ || !__HASURA_BOARD_TOKEN__) return { kind: "not-set-up" };
-  const response = await fetch(__HASURA_HTTP_LINK__, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${__HASURA_BOARD_TOKEN__}` },
-    body: JSON.stringify({ query: TEAM_STATS_QUERY }),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-  const body = await response.json() as { data: TeamStatsAnswer; errors?: Array<{ message: string }> };
-  // hasura answers a rejected token or a missing permission with 200 and an errors list
-  if (body.errors?.length) return { kind: "unreachable", detail: body.errors[0].message };
-  return { kind: "ok", answer: { team_stats: body.data.team_stats } };
+  try {
+    const response = await fetch(__HASURA_HTTP_LINK__, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${__HASURA_BOARD_TOKEN__}` },
+      body: JSON.stringify({ query: TEAM_STATS_QUERY }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    const body = await response.json() as { data: TeamStatsAnswer; errors?: Array<{ message: string }> };
+    // hasura answers a rejected token or a missing permission with 200 and an errors list
+    if (body.errors?.length) return { kind: "unreachable", detail: body.errors[0].message };
+    return { kind: "ok", answer: { team_stats: body.data.team_stats } };
+  } catch (error) {
+    return { kind: "unreachable", detail: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 function encodeBase64(value: string): string {
