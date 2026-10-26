@@ -76,6 +76,12 @@
   {/if}
 {/snippet}
 
+{#snippet explainToggle(label: string)}
+  <button class="explain" aria-label={`What ${label} means`} aria-expanded={explained === label} onclick={() => (explained = explained === label ? null : label)}>
+    <i class="fas fa-circle-info"></i>
+  </button>
+{/snippet}
+
 <div id="stats-panel" class="flex flex-col flex-1 min-h-0">
   {#if view.kind === "loading"}
     <div class="flex flex-col flex-1 items-center justify-center gap-4 p-8" role="status">
@@ -201,9 +207,7 @@
                 <span class="label-line">
                   {row.label}
                   {#if row.explanation}
-                    <button class="explain" aria-label={`What ${row.label} means`} aria-expanded={explained === row.label} onclick={() => (explained = explained === row.label ? null : row.label)}>
-                      <i class="fas fa-circle-info"></i>
-                    </button>
+                    {@render explainToggle(row.label)}
                   {/if}
                 </span>
               </th>
@@ -231,9 +235,7 @@
           <h3 class="label-line grid-title">
             {grid.label}
             {#if grid.explanation}
-              <button class="explain" aria-label={`What ${grid.label} means`} aria-expanded={explained === grid.label} onclick={() => (explained = explained === grid.label ? null : grid.label)}>
-                <i class="fas fa-circle-info"></i>
-              </button>
+              {@render explainToggle(grid.label)}
             {/if}
           </h3>
           {#if grid.explanation && explained === grid.label}
