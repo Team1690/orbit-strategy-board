@@ -12,6 +12,8 @@
 
   let { packet }: { packet: MatchPacket } = $props();
 
+  const ALLIANCES = ["red", "blue"] as const;
+
   let lastFetch = $state.raw<TeamStatsFetch | null>(null);
   let chosenStage = $state(lastStage);
   let explained = $state<string | null>(null);
@@ -82,6 +84,17 @@
           </tr>
         </thead>
         <tbody>
+          {#if stage?.totals}
+            <tr class="totals">
+              <th class="row-label" scope="row">Alliance Total</th>
+              {#each ALLIANCES as alliance (alliance)}
+                {@const span = view.columns.filter((column) => column.alliance === alliance).length}
+                {#if span}
+                  <td class={alliance} colspan={span}>{stage.totals[alliance]}</td>
+                {/if}
+              {/each}
+            </tr>
+          {/if}
           {#each stage?.rows ?? [] as row (row.label)}
             <tr>
               <th class="row-label" scope="row">
@@ -203,6 +216,15 @@
     font-style: italic;
   }
   td.empty { background: #101010; }
+  #stats-table tr.totals th,
+  #stats-table tr.totals td { border-bottom: 2px solid #2a2a2a; }
+  #stats-table tr.totals td {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  #stats-table tr.totals td.red { color: #c97070; }
+  #stats-table tr.totals td.blue { color: #6090c9; }
   .explain {
     display: inline-flex;
     align-items: center;

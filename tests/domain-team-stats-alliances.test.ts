@@ -24,3 +24,14 @@ describe("Estimated score", () => {
     expect(tables(["4590", "5987", ""]).estimatedScores).toEqual({ red: "-", blue: "129" });
   });
 });
+
+describe("Stage totals", () => {
+  it("adds up each alliance's total on the Stages the Scouting App totals", () => {
+    expect(tables().stages.map((stage) => [stage.label, stage.totals])).toEqual([
+      ["Pit", null],
+      ["Auto", { red: "24", blue: "20" }],
+      ["Tele", { red: "61", blue: "55" }],
+      ["Endgame", null],
+    ]);
+  });
+});

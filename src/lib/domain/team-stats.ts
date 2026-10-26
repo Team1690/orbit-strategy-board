@@ -40,6 +40,8 @@ export interface StatsRow {
 export interface StatsStage {
   label: string;
   chosen: boolean;
+  // null on a Stage the Scouting App doesn't total
+  totals: Record<AllianceColor, string> | null;
   rows: StatsRow[];
 }
 
@@ -56,6 +58,8 @@ interface PublishedRow {
 
 interface PublishedStage {
   label: string;
+  // undefined on a Stage the Scouting App doesn't total - null when the team has nothing to add
+  total: number | null | undefined;
   rows: PublishedRow[];
 }
 
@@ -66,9 +70,14 @@ function publishedRows(rows: JsonValue | undefined): PublishedRow[] {
     : []);
 }
 
+function publishedTotal(total: unknown): number | null | undefined {
+  if (total === undefined) return undefined;
+  return typeof total === "number" ? total : null;
+}
+
 function publishedStages(payload: JsonValue | undefined): PublishedStage[] {
   if (!isObject(payload) || !Array.isArray(payload.stages)) return [];
-  return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label, rows: publishedRows(stage.rows) }] : []);
+  return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label, total: publishedTotal(stage.total), rows: publishedRows(stage.rows) }] : []);
 }
 
 function tooNew(payload: JsonValue | undefined): boolean {
@@ -133,7 +142,8 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
         cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-" }),
       };
     });
-    return { label, chosen: label === chosen, rows };
+    const totals = teamStages.some((stage) => stage?.total !== undefined) ? allianceSums(columns, teamStages.map((stage) => stage?.total ?? null)) : null;
+    return { label, chosen: label === chosen, totals, rows };
   });
   return { kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages };
 }
