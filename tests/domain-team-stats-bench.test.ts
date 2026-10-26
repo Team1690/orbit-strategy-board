@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseNexusEvent, planSync, statsView } from "$lib/domain";
+import { parseNexusEvent, planSync, statsView, type AllianceColor } from "$lib/domain";
 import type { MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
@@ -30,6 +30,14 @@ function tables(packet: MatchPacket) {
   return shown;
 }
 
+// the teams drawn brighter on each alliance
+function best(shown: ReturnType<typeof tables>, stageLabel: string, rowLabel: string) {
+  const row = shown.stages.find((stage) => stage.label === stageLabel)?.rows.find((candidate) => candidate.label === rowLabel);
+  if (!row) throw new Error(`no ${stageLabel} ${rowLabel} row`);
+  const teams = (alliance: AllianceColor) => shown.columns.flatMap((column, index) => column.alliance === alliance && row.cells[index]?.best ? [column.team] : []);
+  return { red: teams("red"), blue: teams("blue") };
+}
+
 describe("Bench Teams on the Stats tab", () => {
   it("shows each alliance's Bench Team as a dimmed column right after its alliance's Stations", () => {
     expect(tables(synced(playoff1)).columns.map(({ stationName, team, bench }) => [stationName, team, bench])).toEqual([
@@ -41,5 +49,20 @@ describe("Bench Teams on the Stats tab", () => {
   it("leaves Bench Teams out of the estimated score", () => {
     // the Station teams alone, as in Quals 5 - 5654 and 3075 would make it 128 vs 184
     expect(tables(synced(playoff1)).estimatedScores).toEqual({ red: "119", blue: "129" });
+  });
+
+  it("leaves Bench Teams out of the Stage totals", () => {
+    expect(tables(synced(playoff1)).stages.flatMap((stage) => stage.totals ? [[stage.label, stage.totals]] : [])).toEqual([
+      ["Auto", { red: "24", blue: "20" }],
+      ["Tele", { red: "61", blue: "55" }],
+    ]);
+  });
+
+  it("never draws a Bench Team brighter, nor counts its number toward its alliance's best", () => {
+    const shown = tables(synced(playoff1));
+
+    // 3075 has the most balls on blue and would be EPA's second number
+    expect(best(shown, "Pit", "Max Balls").blue).toEqual(["1690", "3339"]);
+    expect(best(shown, "Pit", "EPA").blue).toEqual([]);
   });
 });
