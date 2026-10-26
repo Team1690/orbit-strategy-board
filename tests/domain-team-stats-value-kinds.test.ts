@@ -44,6 +44,29 @@ function read(grid: StatsTeamGrid | null): string[] | null {
   return grid && [grid.columns.join(" "), ...grid.rows.map((label, index) => [label, ...grid.cells[index].map((cell) => cell.text)].join(" "))];
 }
 
+describe("Stats tab yes or no rows", () => {
+  function cells(answer: TeamStatsAnswer, label: string) {
+    return stageOf(answer, "Pit").rows.find((row) => row.label === label)?.cells;
+  }
+
+  it("marks each team's yes, no or unknown the way the coach does", () => {
+    const yes = { text: "Yes", mark: "green check" };
+    const no = { text: "No", mark: "red cross" };
+    const unknown = { text: "Unknown", mark: "grey cross" };
+
+    expect(cells(fixture, "Pass Trench")).toEqual([yes, unknown, no, yes, no, yes]);
+    expect(cells(fixture, "Pass Bump")).toEqual([yes, unknown, no, no, yes, yes]);
+  });
+
+  it("shows a dash for an answer that isn't yes, no or unknown", () => {
+    const answer = edited((copy) => {
+      publishedRow(copy, 1690, "Pit", "Pass Trench").value = { kind: "yes_no", answer: "sometimes" };
+    });
+
+    expect(cells(answer, "Pass Trench")?.[3]).toEqual({ text: "-" });
+  });
+});
+
 describe("Stats tab small grids", () => {
   it("draws a row whose value is a small grid below the Stage's table instead of in it", () => {
     const endgame = stageOf(fixture, "Endgame");

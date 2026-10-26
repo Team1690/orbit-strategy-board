@@ -26,8 +26,13 @@ export interface StatsColumn {
   noData: boolean;
 }
 
+// how the coach marks a yes, a no and an unknown
+export type StatsMark = "green check" | "red cross" | "grey cross";
+
 export interface StatsCell {
   text: string;
+  // a yes or no is drawn as its mark, with text as its words
+  mark?: StatsMark;
 }
 
 export interface StatsRow {
@@ -97,9 +102,20 @@ function tooNew(payload: JsonValue | undefined): boolean {
   return isObject(payload) && typeof payload.version === "number" && payload.version > TEAM_STATS_FORMAT_VERSION;
 }
 
+function yesNoCell(answer: unknown): StatsCell | null {
+  switch (answer) {
+    case "yes": return { text: "Yes", mark: "green check" };
+    case "no": return { text: "No", mark: "red cross" };
+    case "unknown": return { text: "Unknown", mark: "grey cross" };
+    default: return null;
+  }
+}
+
 // a new kind of value doesn't bump the format version - so one this board can't draw shows as a dash
-function cellText(value: JsonValue): string {
-  return isObject(value) && value.kind === "text" && typeof value.text === "string" ? value.text : "-";
+function cell(value: JsonValue): StatsCell {
+  if (isObject(value) && value.kind === "text" && typeof value.text === "string") return { text: value.text };
+  if (isObject(value) && value.kind === "yes_no") return yesNoCell(value.answer) ?? { text: "-" };
+  return { text: "-" };
 }
 
 function unique(labels: string[]): string[] {
@@ -166,7 +182,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
       return {
         label: rowLabel,
         explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
-        cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-" }),
+        cells: teamRows.map((row, index) => columns[index].noData ? null : row ? cell(row.value) : { text: "-" }),
       };
     });
     return { label, chosen: label === chosen, rows, grids };

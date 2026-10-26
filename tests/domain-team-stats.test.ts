@@ -118,7 +118,6 @@ describe("Stats tab", () => {
     const pit = stage(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "Pit");
 
     expect(pit.rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
-    expect(pit.rows.find((row) => row.label === "Pass Trench")?.cells).toEqual(Array(6).fill({ text: "-" }));
   });
 
   it("says the board needs updating when a team in the Match has Team Stats in a newer format", () => {
