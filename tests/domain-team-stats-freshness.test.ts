@@ -15,7 +15,7 @@ const HOUR = 60 * MINUTE;
 // the fixture event's next match
 const quals5: MatchPacket = newMatchPacket({ matchName: "Quals 5", redTeams: ["254", "4590", "2230"], blueTeams: ["1690", "1657", "3339"], tbaEventKey: "2026isde3" }, "quals-5");
 
-// the fixture as the database answers it - its Confirmed row with the time the server stamped, or none
+// the fixture as the database answers it - its Confirmed row with the time the server stamped or no Confirmed row at all
 function answer(confirmed: string | null = CONFIRMED_AT): TeamStatsAnswer {
   const copy = structuredClone(fixture);
   copy.team_stats_confirmed = confirmed === null ? [] : copy.team_stats_confirmed.map((row) => ({ ...row, confirmed_at: confirmed }));

@@ -103,7 +103,7 @@ export interface TeamStatsConfirmed {
   confirmed_at: string;
 }
 
-// the scouting app's golden fixture has this shape too, less the server's confirmed_at
+// the scouting app's golden fixture has this shape too - less the server's confirmed_at
 export interface TeamStatsAnswer {
   team_stats: TeamStats[];
   // the one Confirmed row - empty until a publisher stamps it
@@ -113,7 +113,6 @@ export interface TeamStatsAnswer {
 // the last answer that came through - kept on the tablet so the stats tab works offline
 export interface CachedTeamStats {
   answer: TeamStatsAnswer;
-  // Date.now() when it came through
   fetchedAt: number;
 }
 

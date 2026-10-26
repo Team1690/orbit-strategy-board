@@ -1,6 +1,6 @@
-//! Persistence primitives.
+//! persistence primitives
 //!
-//! A concrete Tauri persistence plugin can implement [`KeyValueStore`].
+//! a concrete tauri persistence plugin can implement [`KeyValueStore`]
 
 use std::collections::BTreeMap;
 

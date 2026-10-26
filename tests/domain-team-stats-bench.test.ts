@@ -41,7 +41,7 @@ describe("Bench Teams on the Stats tab", () => {
   });
 
   it("leaves Bench Teams out of the estimated score", () => {
-    // the Station teams alone, as in Quals 5 - 5654 and 3075 would make it 128 vs 184
+    // the Station teams alone like in Quals 5 - 5654 and 3075 would make it 128 vs 184
     expect(tables(synced(playoff1)).estimatedScores).toEqual({ red: "119", blue: "129" });
   });
 

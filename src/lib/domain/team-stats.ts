@@ -73,12 +73,12 @@ export interface StatsTeamFaults {
   faults: StatsFault[];
 }
 
-// how the coach marks a yes, a no and an unknown
+// the marks the coach draws for a yes or no answer
 export type StatsMark = "green check" | "red cross" | "grey cross";
 
 export interface StatsCell {
   text: string;
-  // a yes or no is drawn as its mark, with text as its words
+  // a yes or no is drawn as its mark - text holds its words
   mark?: StatsMark;
   // drawn brighter as the best on its alliance - absent on every other cell
   best?: boolean;
@@ -100,7 +100,7 @@ export interface StatsGridCell {
 export interface StatsTeamGrid {
   rows: string[];
   columns: string[];
-  // one list per row label, each as long as columns
+  // one list per row label - each as long as columns
   cells: StatsGridCell[][];
 }
 
@@ -284,7 +284,7 @@ function teamGrid(value: JsonValue): StatsTeamGrid | null {
   return { rows, columns, cells: lines.map((line) => line.map((text) => ({ text, zero: NOUGHT.test(text) }))) };
 }
 
-// a row is a grid when any team sends it as one, so it never also shows in the table as dashes
+// a row is a grid when any team sends it as one - so it never also shows in the table as dashes
 function stageGrids(teamStages: Array<PublishedStage | undefined>, columns: StatsColumn[]): StatsGrid[] {
   const labels = unique(teamStages.flatMap((stage) => stage?.rows.filter((row) => isObject(row.value) && row.value.kind === "grid").map((row) => row.label) ?? []));
   return labels.map((label) => {

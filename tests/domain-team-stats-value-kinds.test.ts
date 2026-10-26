@@ -39,7 +39,7 @@ function climbLadder(answer: TeamStatsAnswer = fixture, packet = quals5()): Stat
   return grid;
 }
 
-// a team's grid the way it reads - the column labels, then each row label with its cells
+// a team's grid the way it reads - the column labels and then each row label with its cells
 function read(grid: StatsTeamGrid | null): string[] | null {
   return grid && [grid.columns.join(" "), ...grid.rows.map((label, index) => [label, ...grid.cells[index].map((cell) => cell.text)].join(" "))];
 }
