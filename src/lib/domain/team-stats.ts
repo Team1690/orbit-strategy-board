@@ -66,8 +66,9 @@ function publishedStages(payload: JsonValue | undefined): PublishedStage[] {
   return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label, rows: publishedRows(stage.rows) }] : []);
 }
 
+// a new kind of value doesn't bump the format version - so one this board can't draw shows as a dash
 function cellText(value: JsonValue): string {
-  return isObject(value) && typeof value.text === "string" ? value.text : "-";
+  return isObject(value) && value.kind === "text" && typeof value.text === "string" ? value.text : "-";
 }
 
 function unique(labels: string[]): string[] {

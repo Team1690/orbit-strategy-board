@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { newMatchPacket, statsView, type StatsViewInput } from "$lib/domain";
-import type { Alliance, MatchPacket, TeamStatsAnswer } from "$lib/native/types";
+import type { Alliance, JsonObject, MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
 
@@ -16,6 +16,25 @@ function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
   const shown = statsView({ fetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
+}
+
+function edited(edit: (answer: TeamStatsAnswer) => void): TeamStatsAnswer {
+  const copy = structuredClone(fixture);
+  edit(copy);
+  return copy;
+}
+
+function payloadOf(answer: TeamStatsAnswer, team: number): JsonObject {
+  const found = answer.team_stats.find((candidate) => candidate.team_number === team);
+  if (!found) throw new Error(`no Team Stats for ${team} in the fixture`);
+  return found.payload as JsonObject;
+}
+
+function publishedRow(answer: TeamStatsAnswer, team: number, stageLabel: string, rowLabel: string): JsonObject {
+  const stages = payloadOf(answer, team).stages as Array<{ label: string; rows: JsonObject[] }>;
+  const row = stages.find((candidate) => candidate.label === stageLabel)?.rows.find((candidate) => candidate.label === rowLabel);
+  if (!row) throw new Error(`no ${stageLabel} ${rowLabel} row for ${team} in the fixture`);
+  return row;
 }
 
 function stage(shown: ReturnType<typeof tables>, label: string) {
@@ -82,5 +101,15 @@ describe("Stats tab", () => {
       ["254", false], ["4590", false], ["5987", true], ["1690", false], ["1657", false], ["3339", false],
     ]);
     expect(shown.stages.flatMap((stage) => stage.rows.map((row) => row.cells[2]))).toEqual(Array(24).fill(null));
+  });
+
+  it("shows a dash for a value of a kind the board doesn't draw yet", () => {
+    const answer = edited((copy) => {
+      publishedRow(copy, 1690, "Pit", "OPR").value = { kind: "sparkline", text: "42.5", points: [38.1, 42.5] };
+    });
+    const pit = stage(tables(quals5(), { fetch: { kind: "ok", answer } }), "Pit");
+
+    expect(pit.rows.find((row) => row.label === "OPR")?.cells[3]).toEqual({ text: "-" });
+    expect(pit.rows.find((row) => row.label === "Pass Trench")?.cells).toEqual(Array(6).fill({ text: "-" }));
   });
 });
