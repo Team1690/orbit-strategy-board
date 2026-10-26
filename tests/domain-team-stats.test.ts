@@ -31,4 +31,8 @@ describe("Stats tab", () => {
     expect(columns.find((column) => column.team === "254")?.color).toBe("#ff8800");
     expect(columns.find((column) => column.team === "1690")?.color).toBe("#3b3bff");
   });
+
+  it("marks Our Team's column", () => {
+    expect(tables(quals5()).columns.filter((column) => column.ourTeam).map((column) => column.team)).toEqual(["1690"]);
+  });
 });
