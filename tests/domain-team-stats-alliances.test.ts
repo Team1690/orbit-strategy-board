@@ -19,4 +19,8 @@ describe("Estimated score", () => {
   it("adds up each alliance's estimated points", () => {
     expect(tables().estimatedScores).toEqual({ red: "119", blue: "129" });
   });
+
+  it("shows a dash for an alliance where no team has estimated points", () => {
+    expect(tables(["4590", "5987", ""]).estimatedScores).toEqual({ red: "-", blue: "129" });
+  });
 });

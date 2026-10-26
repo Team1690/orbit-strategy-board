@@ -94,7 +94,10 @@ function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number
 }
 
 function allianceSums(columns: StatsColumn[], values: Array<number | null>): Record<AllianceColor, string> {
-  const sum = (alliance: AllianceColor) => stationColumns(columns, alliance).reduce((total, index) => total + (values[index] ?? 0), 0).toFixed(0);
+  const sum = (alliance: AllianceColor) => {
+    const numbers = stationColumns(columns, alliance).flatMap((index) => values[index] ?? []);
+    return numbers.length ? numbers.reduce((total, value) => total + value).toFixed(0) : "-";
+  };
   return { red: sum("red"), blue: sum("blue") };
 }
 
