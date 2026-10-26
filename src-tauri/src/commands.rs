@@ -13,10 +13,7 @@ use tauri_plugin_opener::OpenerExt;
 use crate::helpers::storage::KeyValueStore;
 use crate::{
     adapters::{FirestoreAdapter, HttpAdapter, JsonFileStore},
-    helpers::{
-        board, cloud, config, manager, match_model, pdf, platform, qr, search, statbotics, storage,
-        tba,
-    },
+    helpers::{board, cloud, config, manager, match_model, pdf, platform, qr, search, tba},
 };
 
 pub type CommandResult<T> = Result<T, String>;
@@ -106,31 +103,6 @@ pub fn storage_entries(state: State<'_, RuntimeState>) -> CommandResult<Vec<(Str
         .entries()
         .map_err(|error| error.to_string())
 }
-#[tauri::command]
-pub fn statbotics_cached(
-    state: State<'_, RuntimeState>,
-    match_key: String,
-) -> CommandResult<Option<Value>> {
-    storage::get_cached_statbotics(
-        &mut *lock(&state.storage)?,
-        &match_key,
-        now_ms(),
-        storage::DEFAULT_STATBOTICS_TTL_MS,
-    )
-    .map_err(|error| error.to_string())
-}
-#[tauri::command]
-pub fn statbotics_cache_timestamp(
-    state: State<'_, RuntimeState>,
-    match_key: String,
-) -> CommandResult<Option<u64>> {
-    storage::get_statbotics_timestamp(&*lock(&state.storage)?, &match_key)
-        .map_err(|error| error.to_string())
-}
-#[tauri::command]
-pub fn statbotics_clear_cache(state: State<'_, RuntimeState>) -> CommandResult<usize> {
-    storage::clear_statbotics_cache(&mut *lock(&state.storage)?).map_err(|error| error.to_string())
-}
 
 fn tba_service(state: &RuntimeState) -> CommandResult<tba::TbaService> {
     let mut service = tba::TbaService::new(Some(config::Config::current().shared_tba_api_key));
@@ -184,89 +156,6 @@ pub async fn tba_team_events(
         format!("/team/{}/events/{year}", tba::normalize_team_key(&team_key)),
     )
     .await
-}
-
-fn valid_endpoint(endpoint: &str) -> bool {
-    endpoint.starts_with('/')
-        && !endpoint.contains("..")
-        && !endpoint.contains('?')
-        && !endpoint.contains('#')
-}
-#[tauri::command]
-pub async fn statbotics_fetch(
-    state: State<'_, RuntimeState>,
-    endpoint: String,
-) -> CommandResult<Value> {
-    if !valid_endpoint(&endpoint) {
-        return Err("invalid Statbotics endpoint".into());
-    }
-    let cache_key = endpoint.strip_prefix("/match/").unwrap_or(&endpoint);
-    if let Some(data) = storage::get_cached_statbotics(
-        &mut *lock(&state.storage)?,
-        cache_key,
-        now_ms(),
-        storage::DEFAULT_STATBOTICS_TTL_MS,
-    )
-    .map_err(|error| error.to_string())?
-    {
-        return Ok(data);
-    }
-    let response = state
-        .http
-        .get(
-            &format!("{}{}", statbotics::STATBOTICS_API_BASE, endpoint),
-            &[],
-        )
-        .await?;
-    if response.status == 404 {
-        return Err("Statbotics API error: 404 - Data not found".into());
-    }
-    if !(200..300).contains(&response.status) {
-        return Err(format!(
-            "Statbotics API error: {} - {}",
-            response.status, response.status_text
-        ));
-    }
-    let data: Value = response
-        .json()
-        .map_err(|error| format!("Statbotics API JSON error: {error}"))?;
-    storage::cache_statbotics(
-        &mut *lock(&state.storage)?,
-        cache_key,
-        data.clone(),
-        now_ms(),
-    )
-    .map_err(|error| error.to_string())?;
-    Ok(data)
-}
-#[tauri::command]
-pub fn statbotics_match_key(event_key: String, match_name: String) -> String {
-    statbotics::construct_match_key(&event_key, &match_name)
-}
-#[tauri::command]
-pub async fn statbotics_match(
-    state: State<'_, RuntimeState>,
-    match_key: String,
-) -> CommandResult<statbotics::StatboticsMatch> {
-    serde_json::from_value(statbotics_fetch(state, format!("/match/{match_key}")).await?)
-        .map_err(|error| error.to_string())
-}
-#[tauri::command]
-pub async fn statbotics_year(
-    state: State<'_, RuntimeState>,
-    year: i32,
-) -> CommandResult<statbotics::StatboticsYear> {
-    serde_json::from_value(statbotics_fetch(state, format!("/year/{year}")).await?)
-        .map_err(|error| error.to_string())
-}
-#[tauri::command]
-pub async fn statbotics_team_year(
-    state: State<'_, RuntimeState>,
-    team: i32,
-    year: i32,
-) -> CommandResult<statbotics::StatboticsTeamYear> {
-    serde_json::from_value(statbotics_fetch(state, format!("/team_year/{team}/{year}")).await?)
-        .map_err(|error| error.to_string())
 }
 
 fn next_share_code() -> CommandResult<String> {

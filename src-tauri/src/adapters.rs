@@ -15,7 +15,7 @@ use atomicwrites::{AtomicFile, OverwriteBehavior};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
 
-use crate::helpers::{cloud, statbotics, storage, tba};
+use crate::helpers::{cloud, storage, tba};
 
 /// Small, durable JSON store.  Writes use a sibling temporary file followed
 /// by rename, so a process interruption cannot leave a partially-written DB.
@@ -231,20 +231,6 @@ impl tba::HttpClient for HttpAdapter {
     fn execute(&self, request: tba::HttpRequest) -> Result<tba::HttpResponse, String> {
         let response = self.blocking_get(&request.url, &request.headers)?;
         Ok(tba::HttpResponse {
-            status: response.status,
-            status_text: response.status_text,
-            body: response.body,
-        })
-    }
-}
-
-impl statbotics::HttpClient for HttpAdapter {
-    fn execute(
-        &self,
-        request: statbotics::HttpRequest,
-    ) -> Result<statbotics::HttpResponse, String> {
-        let response = self.blocking_get(&request.url, &[])?;
-        Ok(statbotics::HttpResponse {
             status: response.status,
             status_text: response.status_text,
             body: response.body,

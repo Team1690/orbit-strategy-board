@@ -39,7 +39,6 @@
 		67CCEA604BA4452784CB5717 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6A2A1774162997D348E3BAC9 /* config.rs */ = {isa = PBXFileReference; path = config.rs; sourceTree = "<group>"; };
 		7139835F344890467C3EDD05 /* strategy-board_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "strategy-board_iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		77F13F837D3A2FEE49503776 /* statbotics.rs */ = {isa = PBXFileReference; path = statbotics.rs; sourceTree = "<group>"; };
 		7FB08958C955D3FBD37D034F /* board.rs */ = {isa = PBXFileReference; path = board.rs; sourceTree = "<group>"; };
 		806D183505A97E5BC3483DDD /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		84EA98966D7FC3B0C785E1EA /* pdf.rs */ = {isa = PBXFileReference; path = pdf.rs; sourceTree = "<group>"; };
@@ -112,7 +111,6 @@
 				334DB2FC6450E548B7E5E374 /* platform.rs */,
 				BFB1AEF2CE2CF5F9E808EDEA /* qr.rs */,
 				E509E07045A583ED48477385 /* search.rs */,
-				77F13F837D3A2FEE49503776 /* statbotics.rs */,
 				95CDE6085FA7486E8A343984 /* storage.rs */,
 				58CEC8572AFD92CAC649CC9D /* tba.rs */,
 			);
