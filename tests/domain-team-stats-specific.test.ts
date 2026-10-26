@@ -73,4 +73,11 @@ describe("Specific Stage", () => {
     expect(cardOf(tables(quals5()), "1690").notes.categories.map((category) => category.more)).toEqual(["+1 more note", null, null]);
     expect(cardOf(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").notes.categories[0].more).toBe("+3 more notes");
   });
+
+  it("says how many scouters wrote about the team once more than one did", () => {
+    const shown = tables(quals5());
+
+    // two scouters wrote about 1690, one about 2230, and 3339's only scouter gave stars without writing
+    expect(["1690", "2230", "3339", "4590"].map((team) => cardOf(shown, team).notes.scouters)).toEqual(["2 scouters", null, null, null]);
+  });
 });

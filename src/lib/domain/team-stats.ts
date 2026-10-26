@@ -48,6 +48,8 @@ export interface StatsNoteCategory {
 }
 
 export interface StatsNotes {
+  // "N scouters" - null when one scouter or none wrote
+  scouters: string | null;
   categories: StatsNoteCategory[];
 }
 
@@ -139,7 +141,8 @@ function noteCategories(categories: unknown): StatsNoteCategory[] {
 }
 
 function stageNotes(notes: Record<string, unknown> | null): StatsNotes {
-  return { categories: noteCategories(notes?.categories) };
+  const scouters = count(notes?.scouters);
+  return { scouters: scouters > 1 ? `${scouters} scouters` : null, categories: noteCategories(notes?.categories) };
 }
 
 // grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up in its row
