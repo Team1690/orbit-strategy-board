@@ -105,13 +105,13 @@ function estimatedPoints(payload: JsonValue | undefined): number | null {
   return isObject(payload) && typeof payload.estimated_points === "number" ? payload.estimated_points : null;
 }
 
-// the columns whose numbers make up their alliance's
+// the teams whose numbers make up their alliance's score, totals and best
 function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number[] {
   return columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
 }
 
 // a kind this board can't draw shows a dash - so its number can't be the best
-function rawNumber(value: JsonValue): number | null {
+function rawNumber(value: JsonValue | undefined): number | null {
   return isObject(value) && value.kind === "text" && typeof value.raw === "number" ? value.raw : null;
 }
 
@@ -121,7 +121,7 @@ function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | u
   const pick = direction === "higher" ? Math.max : Math.min;
   return new Set((["red", "blue"] as const).flatMap((alliance) => {
     const numbers = stationColumns(columns, alliance).flatMap((index) => {
-      const raw = rows[index] ? rawNumber(rows[index].value) : null;
+      const raw = rawNumber(rows[index]?.value);
       return raw === null ? [] : [{ index, raw }];
     });
     // a lone number would look like a win it isn't
