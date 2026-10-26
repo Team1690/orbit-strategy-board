@@ -35,7 +35,7 @@ export interface StatsColumn {
   noData: boolean;
   activeFaults: number;
   robotTags: StatsTag[];
-  // drawn dimmed after its alliance's Stations
+  // a Bench Team - drawn dimmed and its numbers never count for its alliance
   bench: boolean;
 }
 
