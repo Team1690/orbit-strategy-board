@@ -1,7 +1,7 @@
 import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
-  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent,
+  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent, TeamStatsFetch,
 } from "./types";
 import { fieldLayout } from "$lib/domain/field-layout";
 import { newMatchPacket } from "$lib/domain/packets";
@@ -13,6 +13,7 @@ const APP_DATA_KEY = "appData";
 const TBA_BASE = "https://www.thebluealliance.com/api/v3";
 const NEXUS_BASE = "https://frc.nexus/api/v1";
 const REQUEST_TIMEOUT_MS = 15_000;
+const TEAM_STATS_QUERY = "query TeamStats { team_stats(order_by: {team_number: asc}) { team_number event build_stamp payload } }";
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 let qrTotal: number | null = null;
@@ -194,6 +195,16 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
   return response.kind === "missing-key" ? { kind: "rejected-key" } : response;
 }
 
+async function fetchTeamStats(): Promise<TeamStatsFetch> {
+  await fetch(__HASURA_HTTP_LINK__, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${__HASURA_BOARD_TOKEN__}` },
+    body: JSON.stringify({ query: TEAM_STATS_QUERY }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  return { kind: "ok", answer: { team_stats: [] } };
+}
+
 function encodeBase64(value: string): string {
   const bytes = new TextEncoder().encode(value);
   let binary = "";
@@ -296,6 +307,7 @@ export async function browserInvoke<TResult>(command: string, args: Record<strin
     case "tba_has_api_key": result = Boolean((await storageGet("tbaApiKey")) || __TBA_API_KEY__); break;
     case "tba_team_matches_status": result = await tbaSourceRequest(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/event/${encodeURIComponent(String(args.eventKey))}/matches`, typeof args.etag === "string" ? args.etag : null); break;
     case "tba_team_events": result = await tbaRequest<TbaEvent[]>(`/team/frc${String(args.teamKey).replace(/^frc/i, "")}/events/${args.year}`); break;
+    case "team_stats_fetch": result = await fetchTeamStats(); break;
     case "qr_encode": result = qrEncode(String(args.payload)); break;
     case "qr_reset": qrChunks.clear(); qrTotal = null; break;
     case "qr_receive": result = qrReceive(String(args.frame)); break;

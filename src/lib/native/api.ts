@@ -5,7 +5,7 @@ import { browserInvoke } from "./web";
 import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
-  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent,
+  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent, TeamStatsFetch,
 } from "./types";
 
 export class NativeCommandError extends Error {
@@ -34,11 +34,11 @@ async function call<TResult>(command: string, args?: InvokeArgs): Promise<TResul
   }
 }
 
-// schedule reads always go through the browser implementation - tauri has no commands for them
-// both sources allow cross-origin requests and their keys are compiled into the bundle anyway
-async function sourceCall(command: string, args: Record<string, unknown>): Promise<SourceResponse> {
+// schedule and team stats reads always go through the browser implementation - tauri has no commands for them
+// every source allows cross-origin requests and its key is compiled into the bundle anyway
+async function sourceCall<TResult = SourceResponse>(command: string, args: Record<string, unknown> = {}): Promise<TResult> {
   try {
-    return await browserInvoke<SourceResponse>(command, args);
+    return await browserInvoke<TResult>(command, args);
   } catch (error) {
     throw new NativeCommandError(command, error);
   }
@@ -90,6 +90,9 @@ export const native = {
   nexus: {
     events: (etag?: string | null) => sourceCall("nexus_events", { etag: etag ?? null }),
     eventStatus: (eventKey: string, etag?: string | null) => sourceCall("nexus_event_status", { eventKey, etag: etag ?? null }),
+  },
+  teamStats: {
+    fetch: () => sourceCall<TeamStatsFetch>("team_stats_fetch"),
   },
   qr: {
     encode: (payload: string) => call<string[]>("qr_encode", { payload }),

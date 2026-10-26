@@ -88,6 +88,24 @@ export type SourceResponse =
   | { kind: "offline" }
   | { kind: "unreachable"; detail: string };
 
+/** One team's Team Stats as the Scouting App published them. Only the Stats view reads the payload. */
+export interface TeamStats {
+  team_number: number;
+  event: string;
+  build_stamp: number;
+  payload: JsonValue;
+}
+
+/** What the board's query answers. The Scouting App's golden fixture has the same shape. */
+export interface TeamStatsAnswer {
+  team_stats: TeamStats[];
+}
+
+export type TeamStatsFetch =
+  | { kind: "ok"; answer: TeamStatsAnswer }
+  | { kind: "not-set-up" }
+  | { kind: "unreachable"; detail: string };
+
 export interface QrReceivingProgress {
   status: "receiving";
   received: number;
