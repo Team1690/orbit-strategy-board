@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import { newMatchPacket, statsView, type AllianceColor } from "$lib/domain";
-import type { Alliance, TeamStatsAnswer } from "$lib/native/types";
+import type { Alliance, JsonObject, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
 
 const fixture = golden as unknown as TeamStatsAnswer;
 
 // the fixture event's Quals 5 unless a test lines up other teams
-function tables(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690", "1657", "3339"]) {
+function tables({ red = ["254", "4590", "2230"], blue = ["1690", "1657", "3339"], answer = fixture }: { red?: Alliance; blue?: Alliance; answer?: TeamStatsAnswer } = {}) {
   const packet = newMatchPacket({ matchName: "Quals 5", redTeams: red, blueTeams: blue, tbaEventKey: "2026isde3" }, "quals-5");
-  const shown = statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false });
+  const shown = statsView({ lastFetch: { kind: "ok", answer }, packet, chosenStage: null, teamColors: {}, autoLighten: false });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
 }
@@ -23,13 +23,22 @@ function best(shown: ReturnType<typeof tables>, stageLabel: string, rowLabel: st
   return { red: teams("red"), blue: teams("blue") };
 }
 
+function withValue(team: number, stageLabel: string, rowLabel: string, value: JsonObject): TeamStatsAnswer {
+  const answer = structuredClone(fixture);
+  const payload = answer.team_stats.find((candidate) => candidate.team_number === team)?.payload as { stages: Array<{ label: string; rows: JsonObject[] }> } | undefined;
+  const row = payload?.stages.find((stage) => stage.label === stageLabel)?.rows.find((candidate) => candidate.label === rowLabel);
+  if (!row) throw new Error(`no ${stageLabel} ${rowLabel} row for ${team} in the fixture`);
+  row.value = value;
+  return answer;
+}
+
 describe("Estimated score", () => {
   it("adds up each alliance's estimated points", () => {
     expect(tables().estimatedScores).toEqual({ red: "119", blue: "129" });
   });
 
   it("shows a dash for an alliance where no team has estimated points", () => {
-    expect(tables(["4590", "5987", ""]).estimatedScores).toEqual({ red: "-", blue: "129" });
+    expect(tables({ red: ["4590", "5987", ""] }).estimatedScores).toEqual({ red: "-", blue: "129" });
   });
 });
 
@@ -44,7 +53,7 @@ describe("Stage totals", () => {
   });
 
   it("shows a dash for an alliance where no team has a total", () => {
-    expect(tables(["4590", "5987", ""]).stages.flatMap((stage) => stage.totals ? [[stage.label, stage.totals]] : [])).toEqual([
+    expect(tables({ red: ["4590", "5987", ""] }).stages.flatMap((stage) => stage.totals ? [[stage.label, stage.totals]] : [])).toEqual([
       ["Auto", { red: "-", blue: "20" }],
       ["Tele", { red: "-", blue: "55" }],
     ]);
@@ -57,7 +66,7 @@ describe("Best on each alliance", () => {
   });
 
   it("draws the lowest number brighter where lower is better", () => {
-    expect(best(tables(["2230", "3075", "5654"]), "Pit", "Stopped").red).toEqual(["3075"]);
+    expect(best(tables({ red: ["2230", "3075", "5654"] }), "Pit", "Stopped").red).toEqual(["3075"]);
   });
 
   it("draws tied numbers brighter together", () => {
@@ -73,5 +82,11 @@ describe("Best on each alliance", () => {
 
   it("leaves a row plain where neither way is better", () => {
     expect(best(tables(), "Pit", "Weight")).toEqual({ red: [], blue: [] });
+  });
+
+  it("never draws a value of a kind the board can't draw brighter", () => {
+    const answer = withValue(1690, "Pit", "OPR", { kind: "sparkline", text: "42.5", raw: 42.5, points: [38.1, 42.5] });
+
+    expect(best(tables({ answer }), "Pit", "OPR").blue).toEqual(["3339"]);
   });
 });

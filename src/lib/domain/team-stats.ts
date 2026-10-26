@@ -110,8 +110,9 @@ function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number
   return columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
 }
 
+// a kind this board can't draw shows a dash - so its number can't be the best
 function rawNumber(value: JsonValue): number | null {
-  return isObject(value) && typeof value.raw === "number" ? value.raw : null;
+  return isObject(value) && value.kind === "text" && typeof value.raw === "number" ? value.raw : null;
 }
 
 function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | undefined>): Set<number> {
