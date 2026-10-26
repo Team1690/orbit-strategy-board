@@ -28,6 +28,8 @@ export interface StatsColumn {
 
 export interface StatsCell {
   text: string;
+  // drawn brighter as the best on its alliance - absent on every other cell
+  best?: boolean;
 }
 
 export interface StatsRow {
@@ -102,6 +104,21 @@ function stationColumns(columns: StatsColumn[], alliance: AllianceColor): number
   return columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
 }
 
+function rawNumber(value: JsonValue): number | null {
+  return isObject(value) && typeof value.raw === "number" ? value.raw : null;
+}
+
+function bestOnEachAlliance(columns: StatsColumn[], rows: Array<PublishedRow | undefined>): Set<number> {
+  return new Set((["red", "blue"] as const).flatMap((alliance) => {
+    const numbers = stationColumns(columns, alliance).flatMap((index) => {
+      const raw = rows[index] ? rawNumber(rows[index].value) : null;
+      return raw === null ? [] : [{ index, raw }];
+    });
+    const best = Math.max(...numbers.map(({ raw }) => raw));
+    return numbers.filter(({ raw }) => raw === best).map(({ index }) => index);
+  }));
+}
+
 function allianceSums(columns: StatsColumn[], values: Array<number | null>): Record<AllianceColor, string> {
   const sum = (alliance: AllianceColor) => {
     const numbers = stationColumns(columns, alliance).flatMap((index) => values[index] ?? []);
@@ -136,10 +153,11 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     const teamStages = stagesByTeam.map((stages) => stages.find((stage) => stage.label === label));
     const rows = unique(teamStages.flatMap((stage) => stage?.rows.map((row) => row.label) ?? [])).map((rowLabel) => {
       const teamRows = teamStages.map((stage) => stage?.rows.find((row) => row.label === rowLabel));
+      const best = bestOnEachAlliance(columns, teamRows);
       return {
         label: rowLabel,
         explanation: teamRows.find((row) => row?.explanation)?.explanation ?? null,
-        cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-" }),
+        cells: teamRows.map((row, index) => columns[index].noData ? null : { text: row ? cellText(row.value) : "-", ...(best.has(index) ? { best: true } : {}) }),
       };
     });
     const totals = teamStages.some((stage) => stage?.total !== undefined) ? allianceSums(columns, teamStages.map((stage) => stage?.total ?? null)) : null;

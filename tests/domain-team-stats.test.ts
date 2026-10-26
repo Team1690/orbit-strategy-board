@@ -89,7 +89,7 @@ describe("Stats tab", () => {
     expect(pit.rows.map((row) => row.label)).toEqual([
       "OPR", "EPA", "BPS", "Drive Uptime", "Overall Uptime", "Stopped", "Weight", "Height", "Width", "Max Balls", "Pass Trench", "Pass Bump",
     ]);
-    expect(pit.rows[0].cells).toEqual([{ text: "55.1" }, { text: "-" }, { text: "12.0" }, { text: "42.5" }, { text: "18.2" }, { text: "25.6" }]);
+    expect(pit.rows[0].cells).toMatchObject([{ text: "55.1" }, { text: "-" }, { text: "12.0" }, { text: "42.5" }, { text: "18.2" }, { text: "25.6" }]);
   });
 
   it("keeps a row's explanation on the row", () => {

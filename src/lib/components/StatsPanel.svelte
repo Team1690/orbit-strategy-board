@@ -108,7 +108,7 @@
                 </span>
               </th>
               {#each row.cells as cell, index (view.columns[index].station)}
-                <td class={view.columns[index].alliance} class:empty={cell === null}>{cell?.text ?? ""}</td>
+                <td class={view.columns[index].alliance} class:empty={cell === null} class:best={cell?.best}>{cell?.text ?? ""}</td>
               {/each}
             </tr>
             {#if row.explanation && explained === row.label}
@@ -216,6 +216,12 @@
     font-style: italic;
   }
   td.empty { background: #101010; }
+  td.best {
+    color: #ffffff;
+    font-weight: 700;
+  }
+  td.best.red { background: rgba(220, 38, 38, 0.24); }
+  td.best.blue { background: rgba(37, 99, 235, 0.28); }
   #stats-table tr.totals th,
   #stats-table tr.totals td { border-bottom: 2px solid #2a2a2a; }
   #stats-table tr.totals td {

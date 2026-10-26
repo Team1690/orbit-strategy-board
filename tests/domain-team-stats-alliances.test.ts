@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newMatchPacket, statsView } from "$lib/domain";
+import { newMatchPacket, statsView, type AllianceColor } from "$lib/domain";
 import type { Alliance, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
@@ -13,6 +13,14 @@ function tables(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
   const shown = statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false });
   if (shown.kind !== "stats") throw new Error(`expected the Stage tables but the tab shows ${shown.kind}`);
   return shown;
+}
+
+// the teams drawn brighter on each alliance
+function best(shown: ReturnType<typeof tables>, stageLabel: string, rowLabel: string) {
+  const row = shown.stages.find((stage) => stage.label === stageLabel)?.rows.find((candidate) => candidate.label === rowLabel);
+  if (!row) throw new Error(`no ${stageLabel} ${rowLabel} row`);
+  const teams = (alliance: AllianceColor) => shown.columns.flatMap((column, index) => column.alliance === alliance && row.cells[index]?.best ? [column.team] : []);
+  return { red: teams("red"), blue: teams("blue") };
 }
 
 describe("Estimated score", () => {
@@ -40,5 +48,11 @@ describe("Stage totals", () => {
       ["Auto", { red: "-", blue: "20" }],
       ["Tele", { red: "-", blue: "55" }],
     ]);
+  });
+});
+
+describe("Best on each alliance", () => {
+  it("draws the highest number brighter where higher is better", () => {
+    expect(best(tables(), "Pit", "OPR")).toEqual({ red: ["254"], blue: ["1690"] });
   });
 });
