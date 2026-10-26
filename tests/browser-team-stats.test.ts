@@ -2,7 +2,7 @@ import { indexedDB } from "fake-indexeddb";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { browserInvoke } from "../src/lib/native/web";
-import type { TeamStatsFetch } from "../src/lib/native/types";
+import type { TeamStats, TeamStatsFetch } from "../src/lib/native/types";
 
 const LINK = "https://scouting.example/v1/graphql";
 
@@ -25,6 +25,10 @@ function databaseAnswers(body: unknown) {
   return fetch;
 }
 
+function teamStats(team: number): TeamStats {
+  return { team_number: team, event: "2026isde3", build_stamp: 1761490800, payload: { version: 1, name: `Team ${team}`, estimated_points: null, stages: [] } };
+}
+
 const fetchTeamStats = () => browserInvoke<TeamStatsFetch>("team_stats_fetch");
 
 describe("Team Stats fetch", () => {
@@ -37,5 +41,15 @@ describe("Team Stats fetch", () => {
     const [url, init] = fetch.mock.calls[0];
     expect(String(url)).toBe(LINK);
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer board-token");
+  });
+
+  it("brings every team's Team Stats in one request", async () => {
+    buildWith("board-token");
+    const fetch = databaseAnswers({ data: { team_stats: [teamStats(254), teamStats(1690), teamStats(5987)] } });
+
+    const result = await fetchTeamStats();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "ok", answer: { team_stats: [teamStats(254), teamStats(1690), teamStats(5987)] } });
   });
 });

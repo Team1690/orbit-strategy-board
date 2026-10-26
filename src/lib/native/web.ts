@@ -1,7 +1,7 @@
 import type {
   BoardMode, BoardState, BoardTool, CreateMatchInput, FieldRobotPositions,
   FuzzyBatchItem, FuzzyBatchMatch, FuzzyMatchResult, JsonValue, MatchPacket, NativeConfig,
-  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent, TeamStatsFetch,
+  PdfDocumentPlan, QrProgress, SourceResponse, TbaEvent, TeamStatsAnswer, TeamStatsFetch,
 } from "./types";
 import { fieldLayout } from "$lib/domain/field-layout";
 import { newMatchPacket } from "$lib/domain/packets";
@@ -196,13 +196,14 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
 }
 
 async function fetchTeamStats(): Promise<TeamStatsFetch> {
-  await fetch(__HASURA_HTTP_LINK__, {
+  const response = await fetch(__HASURA_HTTP_LINK__, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${__HASURA_BOARD_TOKEN__}` },
     body: JSON.stringify({ query: TEAM_STATS_QUERY }),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
-  return { kind: "ok", answer: { team_stats: [] } };
+  const body = await response.json() as { data: TeamStatsAnswer };
+  return { kind: "ok", answer: { team_stats: body.data.team_stats } };
 }
 
 function encodeBase64(value: string): string {
