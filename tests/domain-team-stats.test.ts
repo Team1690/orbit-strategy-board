@@ -13,7 +13,7 @@ function quals5(red: Alliance = ["254", "4590", "2230"], blue: Alliance = ["1690
 }
 
 function view(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {
-  return statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, ...input });
+  return statsView({ lastFetch: { kind: "ok", answer: fixture }, packet, chosenStage: null, teamColors: {}, autoLighten: false, now: 0, ...input });
 }
 
 function tables(packet: MatchPacket, input: Partial<StatsViewInput> = {}) {

@@ -18,7 +18,7 @@
   let chosenStage = $state(lastStage);
   let explained = $state<string | null>(null);
 
-  const view = $derived(statsView({ lastFetch, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten }));
+  const view = $derived(statsView({ lastFetch, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten, now: Date.now() }));
   const stage = $derived(view.kind === "stats" ? view.stages.find((candidate) => candidate.chosen) : undefined);
 
   function choose(label: string) {

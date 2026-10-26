@@ -8,6 +8,8 @@ import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
 
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
+const MINUTE_MS = 60_000;
+
 export interface StatsViewInput {
   // null until the first fetch answers
   lastFetch: TeamStatsFetch | null;
@@ -15,6 +17,8 @@ export interface StatsViewInput {
   chosenStage: string | null;
   teamColors: TeamColorOverrides;
   autoLighten: boolean;
+  // Date.now() - the age of the numbers is read against the tablet's clock
+  now: number;
 }
 
 export interface StatsColumn {
@@ -48,10 +52,17 @@ export interface StatsStage {
   rows: StatsRow[];
 }
 
+export interface StatsFreshness {
+  // how long ago the numbers were Confirmed
+  confirmed: string;
+  // set when the last fetch failed and the numbers are the ones the tablet kept
+  unreachable: { title: string; detail: string } | null;
+}
+
 export type StatsView =
   | { kind: "loading" }
   | { kind: "notice"; title: string; detail: string | null }
-  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null };
+  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: { title: string; detail: string } | null; freshness: StatsFreshness };
 
 interface PublishedRow {
   label: string;
@@ -151,7 +162,20 @@ function eventBanner(packet: MatchPacket, teams: string[], answer: TeamStatsAnsw
   return { title: `Team Stats from ${events.join(" and ")}`, detail: `This Match is from ${eventKey}.` };
 }
 
-export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten }: StatsViewInput): StatsView {
+function plural(count: number, unit: string): string {
+  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
+// a server clock ahead of the tablet's would read as a time to come
+function confirmedAgo(answer: TeamStatsAnswer, now: number): string {
+  const at = Date.parse(answer.team_stats_confirmed[0]?.confirmed_at ?? "");
+  if (!Number.isFinite(at)) return "Not Confirmed yet";
+  const minutes = Math.floor(Math.max(0, now - at) / MINUTE_MS);
+  if (minutes < 1) return "Confirmed less than a minute ago";
+  return `Confirmed ${minutes < 60 ? plural(minutes, "minute") : plural(Math.floor(minutes / 60), "hour")} ago`;
+}
+
+export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten, now }: StatsViewInput): StatsView {
   if (!lastFetch) return { kind: "loading" };
   if (lastFetch.kind === "not-set-up") {
     return { kind: "notice", title: "Team Stats aren't set up in this build", detail: "Add HASURA_HTTP_LINK and HASURA_BOARD_TOKEN to orbit-strategy-board.env and rebuild." };
@@ -190,5 +214,6 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   return {
     kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
     eventBanner: eventBanner(packet, teams.map(({ team }) => team), lastFetch.answer),
+    freshness: { confirmed: confirmedAgo(lastFetch.answer, now), unreachable: null },
   };
 }
