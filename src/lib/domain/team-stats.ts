@@ -37,9 +37,22 @@ export interface StatsRow {
   cells: Array<StatsCell | null>;
 }
 
+export interface StatsNoteCategory {
+  label: string;
+  stars: number | null;
+  // more than one rating went into the stars
+  average: boolean;
+  latest: string;
+}
+
+export interface StatsNotes {
+  categories: StatsNoteCategory[];
+}
+
 export interface StatsCard {
   // headed like the team's column in the tables
   column: StatsColumn;
+  notes: StatsNotes;
 }
 
 export interface StatsCardRow {
@@ -102,6 +115,26 @@ function notesIn(payload: JsonValue | undefined, label: string): Record<string, 
   return isObject(stage) && isObject(stage.notes) ? stage.notes : null;
 }
 
+function count(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function noteCategories(categories: unknown): StatsNoteCategory[] {
+  if (!Array.isArray(categories)) return [];
+  return categories.flatMap((category) => isObject(category) && typeof category.label === "string"
+    ? [{
+      label: category.label,
+      stars: typeof category.stars === "number" ? category.stars : null,
+      average: count(category.ratings) > 1,
+      latest: typeof category.latest === "string" ? category.latest : "",
+    }]
+    : []);
+}
+
+function stageNotes(notes: Record<string, unknown> | null): StatsNotes {
+  return { categories: noteCategories(notes?.categories) };
+}
+
 // grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up in its row
 function cardRows(cards: StatsCard[]): StatsCardRow[] {
   return (["red", "blue"] as const).flatMap((alliance) => {
@@ -143,7 +176,8 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
       };
     });
     const notes = teams.map(({ payload }) => notesIn(payload, label));
-    return { label, chosen: label === chosen, rows, cardRows: notes.some(Boolean) ? cardRows(columns.map((column) => ({ column }))) : [] };
+    const cards = columns.map((column, index) => ({ column, notes: stageNotes(notes[index]) }));
+    return { label, chosen: label === chosen, rows, cardRows: notes.some(Boolean) ? cardRows(cards) : [] };
   });
   return { kind: "stats", columns, stages };
 }

@@ -24,6 +24,12 @@ function stage(shown: ReturnType<typeof tables>, label: string) {
   return found;
 }
 
+function cardOf(shown: ReturnType<typeof tables>, team: string) {
+  const found = stage(shown, "Specific").cardRows.flatMap((row) => row.cards).find((card) => card.column.team === team);
+  if (!found) throw new Error(`no Specific card for ${team}`);
+  return found;
+}
+
 describe("Specific Stage", () => {
   it("draws one card per Station team in Station order, Red row then Blue row, each headed like the team's column", () => {
     const shown = tables(quals5());
@@ -35,5 +41,14 @@ describe("Specific Stage", () => {
     ]);
     expect(specific.cardRows.flatMap((row) => row.cards.map((card) => card.column))).toEqual(shown.columns);
     expect(specific.rows).toEqual([]);
+  });
+
+  it("lists only the categories someone wrote about, each with its stars, avg when more than one rating went in and the latest note in full", () => {
+    // two scouters rated 1690's General - nobody wrote about its Scoring, Delivery, Intake, Defense or Stealing
+    expect(cardOf(tables(quals5()), "1690").notes?.categories).toMatchObject([
+      { label: "General", stars: 4, average: true, latest: "Very consistent cycles" },
+      { label: "Driving", stars: 5, average: false, latest: "נהג מהיר ומדויק" },
+      { label: "Climbing", stars: 5, average: false, latest: "Climbs L3 every match" },
+    ]);
   });
 });
