@@ -80,4 +80,12 @@ describe("Specific Stage", () => {
     // two scouters wrote about 1690, one about 2230, and 3339's only scouter gave stars without writing
     expect(["1690", "2230", "3339", "4590"].map((team) => cardOf(shown, team).notes.scouters)).toEqual(["2 scouters", null, null, null]);
   });
+
+  it("marks a team whose defense a scouter starred", () => {
+    const shown = tables(quals5());
+
+    expect(shown.columns.map(({ team }) => [team, cardOf(shown, team).notes.defenseStarred])).toEqual([
+      ["254", true], ["4590", false], ["2230", false], ["1690", false], ["1657", false], ["3339", false],
+    ]);
+  });
 });
