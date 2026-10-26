@@ -26,6 +26,27 @@ export interface StatsColumn {
   color: string;
   ourTeam: boolean;
   noData: boolean;
+  activeFaults: number;
+  robotTags: StatsTag[];
+}
+
+export interface StatsTag {
+  name: string;
+  color: string;
+}
+
+export interface StatsFault {
+  match: string;
+  status: string;
+  message: string;
+  resolution: string | null;
+  // "2/3 scouters" - only for a fault off a double-scouted match
+  scouters: string | null;
+}
+
+export interface StatsTeamFaults {
+  column: StatsColumn;
+  faults: StatsFault[];
 }
 
 export interface StatsCell {
@@ -79,6 +100,8 @@ export interface StatsStage {
   rows: StatsRow[];
   // a Stage of notes draws a card per team instead of a table
   cardRows: StatsCardRow[];
+  // listed below the table - only Pit has any
+  faults: StatsTeamFaults[];
 }
 
 export type StatsView =
@@ -120,6 +143,28 @@ function publishedTotal(total: unknown): number | null | undefined {
 function publishedStages(payload: JsonValue | undefined): PublishedStage[] {
   if (!isObject(payload) || !Array.isArray(payload.stages)) return [];
   return payload.stages.flatMap((stage) => isObject(stage) && typeof stage.label === "string" ? [{ label: stage.label, total: publishedTotal(stage.total), rows: publishedRows(stage.rows) }] : []);
+}
+
+// Team Stats published before faults and tags have no such key - the same as none
+function publishedList(payload: JsonValue | undefined, key: string): unknown[] {
+  const list = isObject(payload) ? payload[key] : undefined;
+  return Array.isArray(list) ? list : [];
+}
+
+function publishedTags(payload: JsonValue | undefined): StatsTag[] {
+  return publishedList(payload, "robot_tags").flatMap((tag) => isObject(tag) && typeof tag.name === "string" && typeof tag.color === "string" ? [{ name: tag.name, color: tag.color }] : []);
+}
+
+function publishedFaults(payload: JsonValue | undefined): StatsFault[] {
+  return publishedList(payload, "active_faults").flatMap((fault) => isObject(fault) && typeof fault.message === "string"
+    ? [{
+      match: typeof fault.match === "string" ? fault.match : "",
+      status: typeof fault.status === "string" ? fault.status : "",
+      message: fault.message,
+      resolution: typeof fault.resolution === "string" ? fault.resolution : null,
+      scouters: typeof fault.reported_by === "number" && typeof fault.scouters === "number" ? `${fault.reported_by}/${fault.scouters} scouters` : null,
+    }]
+    : []);
 }
 
 function tooNew(payload: JsonValue | undefined): boolean {
@@ -246,10 +291,13 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   if (teams.some(({ payload }) => tooNew(payload))) {
     return { kind: "notice", title: "This board needs an update", detail: "The Scouting App publishes Team Stats in a newer format than this board can read." };
   }
-  const columns = teams.map(({ station, team, payload }) => ({
+  const faultsByTeam = teams.map(({ payload }) => publishedFaults(payload));
+  const columns = teams.map(({ station, team, payload }, index) => ({
     station, stationName: STATION_NAMES[station], alliance: stationAlliance(station),
     team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),
+    activeFaults: faultsByTeam[index].length, robotTags: publishedTags(payload),
   }));
+  const faults = columns.flatMap((column, index) => faultsByTeam[index].length ? [{ column, faults: faultsByTeam[index] }] : []);
   const stagesByTeam = teams.map(({ payload }) => publishedStages(payload));
   const labels = unique(stagesByTeam.flatMap((stages) => stages.map((stage) => stage.label)));
   const chosen = chosenStage !== null && labels.includes(chosenStage) ? chosenStage : labels[0];
@@ -267,7 +315,8 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     const totals = teamStages.some((stage) => stage?.total !== undefined) ? allianceSums(columns, teamStages.map((stage) => stage?.total ?? null)) : null;
     const notes = teams.map(({ payload }) => notesIn(payload, label));
     const cards = columns.map((column, index) => ({ column, notes: column.noData ? null : stageNotes(notes[index]) }));
-    return { label, chosen: label === chosen, totals, rows, cardRows: notes.some(Boolean) ? cardRows(cards) : [] };
+    // the first Stage is Pit - the board never goes by a Stage's label
+    return { label, chosen: label === chosen, totals, rows, cardRows: notes.some(Boolean) ? cardRows(cards) : [], faults: label === labels[0] ? faults : [] };
   });
   return {
     kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
