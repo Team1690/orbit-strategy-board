@@ -31,4 +31,19 @@ describe("Active Faults and Robot Tags", () => {
       ["254", [defender, fastClimber]], ["4590", []], ["2230", [defender]], ["1690", [fastClimber]], ["1657", []], ["3339", []],
     ]);
   });
+
+  it("lists every Active Fault of the Match's teams below Pit's table, grouped by team in Station order", () => {
+    const listed = tables().stages.map(({ label, faults }) => [label, faults.map(({ column, faults }) => [column.team, faults])]);
+
+    expect(listed).toEqual([
+      ["Pit", [
+        ["2230", [{ match: "Q2", status: "No progress", message: "Robot dead on field", resolution: null, scouters: null }]],
+        ["1690", [
+          { match: "Q1", status: "Unknown", message: "Lost comms", resolution: null, scouters: "2/2 scouters" },
+          { match: "Q2", status: "In progress", message: "Intake jams on the bump", resolution: "New roller tonight", scouters: null },
+        ]],
+      ]],
+      ["Auto", []], ["Tele", []], ["Endgame", []],
+    ]);
+  });
 });

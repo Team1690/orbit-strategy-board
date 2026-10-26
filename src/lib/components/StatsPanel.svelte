@@ -9,6 +9,7 @@
   import { native } from "$lib/native/api";
   import type { MatchPacket, TeamStatsFetch } from "$lib/native/types";
   import { boardConfig } from "$lib/stores/config.svelte";
+  import StatsFaultList from "./StatsFaultList.svelte";
   import StatsTeamMarks from "./StatsTeamMarks.svelte";
 
   let { packet }: { packet: MatchPacket } = $props();
@@ -102,6 +103,9 @@
           {/each}
         </tbody>
       </table>
+      {#if stage?.faults.length}
+        <StatsFaultList teams={stage.faults} />
+      {/if}
     </div>
   {/if}
 </div>
