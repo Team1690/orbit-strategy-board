@@ -42,4 +42,11 @@ describe("Stats tab", () => {
     expect(stages.map((stage) => stage.label)).toEqual(["Pit", "Auto", "Tele", "Endgame"]);
     expect(stages.filter((stage) => stage.chosen).map((stage) => stage.label)).toEqual(["Pit"]);
   });
+
+  it("keeps the Stage picked on another Match, or opens on Pit when this Match has no such Stage", () => {
+    const chosen = (chosenStage: string) => tables(quals5(), { chosenStage }).stages.filter((stage) => stage.chosen).map((stage) => stage.label);
+
+    expect(chosen("Tele")).toEqual(["Tele"]);
+    expect(chosen("Specific")).toEqual(["Pit"]);
+  });
 });
