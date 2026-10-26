@@ -65,4 +65,21 @@ describe("Bench Teams on the Stats tab", () => {
     expect(best(shown, "Pit", "Max Balls").blue).toEqual(["1690", "3339"]);
     expect(best(shown, "Pit", "EPA").blue).toEqual([]);
   });
+
+  it("marks a Bench Team's header with its Active Faults and Robot Tags like any other team's", () => {
+    expect(tables(synced(playoff1)).columns.filter((column) => column.bench).map(({ team, activeFaults, robotTags }) => [team, activeFaults, robotTags])).toEqual([
+      ["5654", 1, [{ name: "Watch intake", color: "#ffc107" }]],
+      ["3075", 0, []],
+    ]);
+  });
+
+  it("lists a Bench Team's Active Faults on Pit after its alliance's Station teams", () => {
+    const [pit] = tables(synced(playoff1)).stages;
+
+    expect(pit.faults.map(({ column, faults }) => [column.stationName, column.team, faults.map((fault) => fault.message)])).toEqual([
+      ["Red 3", "2230", ["Robot dead on field"]],
+      ["Red Bench", "5654", ["Shooter wheel loose"]],
+      ["Blue 1", "1690", ["Lost comms", "Intake jams on the bump"]],
+    ]);
+  });
 });
