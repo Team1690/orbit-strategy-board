@@ -24,4 +24,11 @@ describe("Stats tab", () => {
       ["Red 1", "254"], ["Red 2", "4590"], ["Red 3", "2230"], ["Blue 1", "1690"], ["Blue 2", "1657"], ["Blue 3", "3339"],
     ]);
   });
+
+  it("heads each column with its team number in its Team Color", () => {
+    const columns = tables(quals5(), { teamColors: { "254": "#ff8800" }, autoLighten: true }).columns;
+
+    expect(columns.find((column) => column.team === "254")?.color).toBe("#ff8800");
+    expect(columns.find((column) => column.team === "1690")?.color).toBe("#3b3bff");
+  });
 });
