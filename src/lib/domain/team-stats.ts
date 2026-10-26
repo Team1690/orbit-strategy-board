@@ -4,6 +4,7 @@ import { isObject } from "./json";
 import { packetLineup } from "./reassign";
 import { OUR_TEAM, STATION_NAMES, STATIONS, stationAlliance, teamNumberKey, type AllianceColor, type StationKey } from "./stations";
 import { resolveTeamColor, type TeamColorOverrides } from "./team-colors";
+import { textDirection, type TextDirection } from "./text-direction";
 
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
@@ -43,6 +44,7 @@ export interface StatsNoteCategory {
   // more than one rating went into the stars
   average: boolean;
   latest: string;
+  direction: TextDirection;
   // "+N more notes" - null when the latest is the only one
   more: string | null;
 }
@@ -130,15 +132,18 @@ function moreNotes(older: number): string | null {
 
 function noteCategories(categories: unknown): StatsNoteCategory[] {
   if (!Array.isArray(categories)) return [];
-  return categories.flatMap((category) => isObject(category) && typeof category.label === "string"
-    ? [{
+  return categories.flatMap((category) => {
+    if (!isObject(category) || typeof category.label !== "string") return [];
+    const latest = typeof category.latest === "string" ? category.latest : "";
+    return [{
       label: category.label,
       stars: typeof category.stars === "number" ? category.stars : null,
       average: count(category.ratings) > 1,
-      latest: typeof category.latest === "string" ? category.latest : "",
+      latest,
+      direction: textDirection(latest),
       more: moreNotes(count(category.older)),
-    }]
-    : []);
+    }];
+  });
 }
 
 function stageNotes(notes: Record<string, unknown> | null): StatsNotes {

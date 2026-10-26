@@ -88,4 +88,13 @@ describe("Specific Stage", () => {
       ["254", true], ["4590", false], ["2230", false], ["1690", false], ["1657", false], ["3339", false],
     ]);
   });
+
+  it("reads a note written in Hebrew right to left, even one that starts with a Latin letter", () => {
+    const answer = edited((copy) => {
+      (notesOf(copy, 1690).categories as JsonObject[])[2].latest = "L3 בכל משחק";
+    });
+
+    expect(cardOf(tables(quals5()), "1690").notes.categories.map((category) => category.direction)).toEqual(["ltr", "rtl", "ltr"]);
+    expect(cardOf(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").notes.categories[2].direction).toBe("rtl");
+  });
 });
