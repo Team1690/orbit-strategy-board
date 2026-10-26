@@ -60,6 +60,10 @@ describe("Best on each alliance", () => {
     expect(best(tables(["2230", "3075", "5654"]), "Pit", "Stopped").red).toEqual(["3075"]);
   });
 
+  it("draws tied numbers brighter together", () => {
+    expect(best(tables(), "Pit", "Max Balls")).toEqual({ red: ["254"], blue: ["1690", "3339"] });
+  });
+
   it("draws nothing brighter on an alliance until two of its teams have a number", () => {
     const shown = tables();
 
