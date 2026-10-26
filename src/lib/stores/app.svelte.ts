@@ -17,6 +17,7 @@ let initPromise: Promise<void> | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
 let pendingWrites = 0;
 const LEGACY_MIGRATION_KEY = "legacyIndexedDbMigrationV1";
+const STATBOTICS_CLEARED_KEY = "statboticsCacheCleared";
 
 export interface MatchInfoUpdate {
   matchName: string;
@@ -63,6 +64,15 @@ function replaceInMemory(packet: MatchPacket): void {
   const next = [...packets];
   next[index] = structuredClone(packet);
   packets = next;
+}
+
+// listing the entries carries every stored packet over ipc on tauri - so this runs once and not on every launch
+async function clearStatboticsCache(): Promise<void> {
+  if (await native.storage.get(STATBOTICS_CLEARED_KEY) === true) return;
+  for (const [key] of await native.storage.entries()) {
+    if (key.startsWith("statbotics_")) await native.storage.delete(key);
+  }
+  await native.storage.set(STATBOTICS_CLEARED_KEY, true);
 }
 
 function queueWrite<T>(operation: () => Promise<T>): Promise<T> {
@@ -130,6 +140,7 @@ export const app = {
         }
         setPackets(loaded);
         initialized = true;
+        void clearStatboticsCache().catch(() => undefined);
       } catch (error) {
         console.error("Failed to load Orbit Strategy Board data", error);
         toast.show("Could not load saved matches. Your existing data was not changed.", "error");
