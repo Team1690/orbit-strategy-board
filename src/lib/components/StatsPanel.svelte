@@ -5,7 +5,7 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ALLIANCES, statsView, type StatsColumn, type StatsMark } from "$lib/domain";
+  import { statsView, type StatsColumn, type StatsMark } from "$lib/domain";
   import { native } from "$lib/native/api";
   import type { MatchPacket, TeamStatsFetch } from "$lib/native/types";
   import { boardConfig } from "$lib/stores/config.svelte";
@@ -190,12 +190,11 @@
           {#if stage?.totals}
             <tr class="totals">
               <th class="row-label" scope="row">Alliance Total</th>
-              {#each ALLIANCES as alliance (alliance)}
-                {@const span = view.columns.filter((column) => column.alliance === alliance && !column.bench).length}
-                {#if span}
-                  <td class={alliance} colspan={span}>{stage.totals[alliance]}</td>
+              {#each view.alliances as { alliance, stationSpan, bench } (alliance)}
+                {#if stationSpan}
+                  <td class={alliance} colspan={stationSpan}>{stage.totals[alliance]}</td>
                 {/if}
-                {#if view.columns.some((column) => column.alliance === alliance && column.bench)}
+                {#if bench}
                   <td class={alliance}></td>
                 {/if}
               {/each}
@@ -242,42 +241,41 @@
             <p class="grid-explanation">{grid.explanation}</p>
           {/if}
           <div class="grid-alliances">
-            {#each ALLIANCES.filter((alliance) => view.columns.some((column) => column.alliance === alliance)) as alliance (alliance)}
+            {#each view.alliances as { alliance, columnIndexes } (alliance)}
               <div class="grid-alliance">
-                {#each grid.teams as team, index (view.columns[index].place)}
+                {#each columnIndexes as index (view.columns[index].place)}
                   {@const column = view.columns[index]}
-                  {#if column.alliance === alliance}
-                    <figure class="grid-team {alliance}" class:bench={column.bench}>
-                      <figcaption>
-                        <span class="grid-team-number" style:color={column.color}>{column.team}</span>
-                        <span class="place">{column.placeName}</span>
-                      </figcaption>
-                      {#if team}
-                        <table class="small-grid">
-                          <thead>
+                  {@const team = grid.teams[index]}
+                  <figure class="grid-team {alliance}" class:bench={column.bench}>
+                    <figcaption>
+                      <span class="grid-team-number" style:color={column.color}>{column.team}</span>
+                      <span class="place">{column.placeName}</span>
+                    </figcaption>
+                    {#if team}
+                      <table class="small-grid">
+                        <thead>
+                          <tr>
+                            <td></td>
+                            {#each team.columns as heading, columnIndex (columnIndex)}
+                              <th scope="col">{heading}</th>
+                            {/each}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {#each team.rows as heading, rowIndex (rowIndex)}
                             <tr>
-                              <td></td>
-                              {#each team.columns as heading, columnIndex (columnIndex)}
-                                <th scope="col">{heading}</th>
+                              <th scope="row">{heading}</th>
+                              {#each team.cells[rowIndex] as gridCell, cellIndex (cellIndex)}
+                                <td class:zero={gridCell.zero}>{gridCell.text}</td>
                               {/each}
                             </tr>
-                          </thead>
-                          <tbody>
-                            {#each team.rows as heading, rowIndex (rowIndex)}
-                              <tr>
-                                <th scope="row">{heading}</th>
-                                {#each team.cells[rowIndex] as gridCell, cellIndex (cellIndex)}
-                                  <td class:zero={gridCell.zero}>{gridCell.text}</td>
-                                {/each}
-                              </tr>
-                            {/each}
-                          </tbody>
-                        </table>
-                      {:else}
-                        <p class="no-grid">{column.noData ? "No data" : "-"}</p>
-                      {/if}
-                    </figure>
-                  {/if}
+                          {/each}
+                        </tbody>
+                      </table>
+                    {:else}
+                      <p class="no-grid">{column.noData ? "No data" : "-"}</p>
+                    {/if}
+                  </figure>
                 {/each}
               </div>
             {/each}

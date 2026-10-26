@@ -41,6 +41,16 @@ export interface StatsColumn {
   bench: boolean;
 }
 
+// one alliance's columns - its Stations then its Bench Team
+export interface StatsAlliance {
+  alliance: AllianceColor;
+  columnIndexes: number[];
+  // the Alliance Total spans the Station columns alone
+  stationSpan: number;
+  // its Bench Team has a column - left empty on the Alliance Total
+  bench: boolean;
+}
+
 export interface StatsTag {
   name: string;
   color: string;
@@ -157,7 +167,7 @@ export interface StatsFreshness {
 export type StatsView =
   | { kind: "loading" }
   | ({ kind: "notice" } & StatsNotice)
-  | { kind: "stats"; columns: StatsColumn[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: StatsNotice | null; freshness: StatsFreshness };
+  | { kind: "stats"; columns: StatsColumn[]; alliances: StatsAlliance[]; estimatedScores: Record<AllianceColor, string>; stages: StatsStage[]; eventBanner: StatsNotice | null; freshness: StatsFreshness };
 
 interface PublishedRow {
   label: string;
@@ -319,14 +329,6 @@ function stageNotes(notes: Record<string, unknown> | null): StatsNotes {
   };
 }
 
-// grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up in its row
-function cardRows(cards: StatsCard[]): StatsCardRow[] {
-  return ALLIANCES.flatMap((alliance) => {
-    const row = cards.filter((card) => card.column.alliance === alliance);
-    return row.length ? [{ alliance, cards: row }] : [];
-  });
-}
-
 const BENCHES = { red: { place: "redBench", placeName: "Red Bench" }, blue: { place: "blueBench", placeName: "Blue Bench" } } as const;
 
 // the Match's teams in column order - each alliance's Stations then its Bench Team
@@ -337,6 +339,19 @@ function columnTeams(packet: MatchPacket) {
     ...ALLIANCE_STATIONS[alliance].map((station) => ({ place: station, placeName: STATION_NAMES[station], alliance, team: lineup[station].trim(), bench: false })),
     { ...BENCHES[alliance], alliance, team: bench[alliance]?.trim() ?? "", bench: true },
   ].filter(({ team }) => team));
+}
+
+// grouped by alliance rather than cut at Blue 1 - a team added after its alliance still ends up with it
+function alliancesOf(columns: StatsColumn[]): StatsAlliance[] {
+  return ALLIANCES.flatMap((alliance) => {
+    const columnIndexes = columns.flatMap((column, index) => column.alliance === alliance ? [index] : []);
+    const stationSpan = stationIndexes(columns, alliance).length;
+    return columnIndexes.length ? [{ alliance, columnIndexes, stationSpan, bench: columnIndexes.length > stationSpan }] : [];
+  });
+}
+
+function cardRows(alliances: StatsAlliance[], cards: StatsCard[]): StatsCardRow[] {
+  return alliances.map(({ alliance, columnIndexes }) => ({ alliance, cards: columnIndexes.map((index) => cards[index]) }));
 }
 
 function estimatedPoints(payload: JsonValue | undefined): number | null {
@@ -423,6 +438,7 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     team, color: resolveTeamColor(team, teamColors, autoLighten), ourTeam: teamNumberKey(team) === OUR_TEAM, noData: !isObject(payload),
     activeFaults: faultsByTeam[index].length, robotTags: publishedTags(payload), bench,
   }));
+  const alliances = alliancesOf(columns);
   const faults = columns.flatMap((column, index) => faultsByTeam[index].length ? [{ column, faults: faultsByTeam[index] }] : []);
   const stagesByTeam = teams.map(({ payload }) => publishedStages(payload));
   const labels = unique(stagesByTeam.flatMap((stages) => stages.map((stage) => stage.label)));
@@ -444,10 +460,10 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     const notes = teams.map(({ payload }) => notesIn(payload, label));
     const cards = columns.map((column, index) => ({ column, notes: column.noData ? null : stageNotes(notes[index]) }));
     // the first Stage is Pit - the board never goes by a Stage's label
-    return { label, chosen: label === chosen, totals, rows, grids, cardRows: notes.some(Boolean) ? cardRows(cards) : [], faults: label === labels[0] ? faults : [] };
+    return { label, chosen: label === chosen, totals, rows, grids, cardRows: notes.some(Boolean) ? cardRows(alliances, cards) : [], faults: label === labels[0] ? faults : [] };
   });
   return {
-    kind: "stats", columns, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
+    kind: "stats", columns, alliances, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
     eventBanner: eventBanner(packet, teams.flatMap(({ row }) => row ?? []), answer),
     freshness: { confirmed: confirmedAgo(answer, now), unreachable: lastFetch.kind === "unreachable" ? { title: UNREACHABLE, detail: lastFetch.detail } : null },
   };

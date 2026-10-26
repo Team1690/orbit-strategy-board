@@ -58,6 +58,10 @@ describe("Stats tab", () => {
     expect(tables(quals5(["254", " ", "2230"], ["1690", "", "3339"])).columns.map((column) => column.placeName)).toEqual(["Red 1", "Red 3", "Blue 1", "Blue 3"]);
   });
 
+  it("leaves out an alliance with no teams", () => {
+    expect(tables(quals5(["254", "4590", "2230"], ["", "", ""])).alliances.map(({ alliance }) => alliance)).toEqual(["red"]);
+  });
+
   it("heads each column with its team number in its Team Color", () => {
     const columns = tables(quals5(), { teamColors: { "254": "#ff8800" }, autoLighten: true }).columns;
 

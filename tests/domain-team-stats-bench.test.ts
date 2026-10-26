@@ -45,6 +45,17 @@ describe("Bench Teams on the Stats tab", () => {
     expect(tables(synced(playoff1)).estimatedScores).toEqual({ red: "119", blue: "129" });
   });
 
+  it("groups each alliance's columns so its Alliance Total spans only its Stations and leaves its Bench Team's cell empty", () => {
+    expect(tables(synced(playoff1)).alliances).toEqual([
+      { alliance: "red", columnIndexes: [0, 1, 2, 3], stationSpan: 3, bench: true },
+      { alliance: "blue", columnIndexes: [4, 5, 6, 7], stationSpan: 3, bench: true },
+    ]);
+    expect(tables(synced(quals5)).alliances).toEqual([
+      { alliance: "red", columnIndexes: [0, 1, 2], stationSpan: 3, bench: false },
+      { alliance: "blue", columnIndexes: [3, 4, 5], stationSpan: 3, bench: false },
+    ]);
+  });
+
   it("leaves Bench Teams out of the Stage totals", () => {
     expect(tables(synced(playoff1)).stages.flatMap((stage) => stage.totals ? [[stage.label, stage.totals]] : [])).toEqual([
       ["Auto", { red: "24", blue: "20" }],
