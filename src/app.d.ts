@@ -22,6 +22,8 @@ declare global {
   /** Build-time public client keys used by the browser service adapter. */
   const __TBA_API_KEY__: string;
   const __NEXUS_API_KEY__: string;
+  const __HASURA_HTTP_LINK__: string;
+  const __HASURA_BOARD_TOKEN__: string;
 }
 
 export {};

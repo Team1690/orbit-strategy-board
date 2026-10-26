@@ -70,6 +70,15 @@ Both keys are compiled into the APK, and the APK is public, so anyone can read t
 2. Update the secret with `gh secret set TBA_API_KEY` or `gh secret set NEXUS_API_KEY` and paste the new key. Update your own `orbit-strategy-board.env` too.
 3. Cut a release so the tablet gets a build with the new key.
 
+## Rotating the Team Stats token
+
+The Stats tab reads Team Stats from the Scouting App's Hasura database with a token for its `board` role, which can only read Team Stats and the Confirmed time. The token is compiled into the APK like the TBA and Nexus keys, so anyone can read it. If it gets abused:
+
+1. Change the JWT secret in the Hasura Cloud project. That voids the token. The admin secret keeps working, so the Scouting App is unaffected.
+2. Mint a new non-expiring token for the `board` role, signed with the new secret.
+3. Update the secret with `gh secret set HASURA_BOARD_TOKEN` and paste the new token. Update your own `orbit-strategy-board.env` too.
+4. Cut a release. Every older APK loses the Stats tab until it updates.
+
 ## The release key
 
 Every release is signed with one permanent key. Android only installs an update when it's signed by the same key as the installed app, and that's also what keeps every Match on the tablet across updates.

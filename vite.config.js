@@ -41,6 +41,8 @@ export default defineConfig(async () => ({
     __BUILD_COMMIT__: JSON.stringify(getGitCommitInfo()),
     __TBA_API_KEY__: JSON.stringify(env.VITE_TBA_API_KEY || env.TBA_API_KEY || ""),
     __NEXUS_API_KEY__: JSON.stringify(env.VITE_NEXUS_API_KEY || env.NEXUS_API_KEY || ""),
+    __HASURA_HTTP_LINK__: JSON.stringify(env.VITE_HASURA_HTTP_LINK || env.HASURA_HTTP_LINK || ""),
+    __HASURA_BOARD_TOKEN__: JSON.stringify(env.VITE_HASURA_BOARD_TOKEN || env.HASURA_BOARD_TOKEN || ""),
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

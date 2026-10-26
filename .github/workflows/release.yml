@@ -79,6 +79,8 @@ jobs:
         env:
           TBA_API_KEY: ${{ secrets.TBA_API_KEY }}
           NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
+          HASURA_HTTP_LINK: ${{ secrets.HASURA_HTTP_LINK }}
+          HASURA_BOARD_TOKEN: ${{ secrets.HASURA_BOARD_TOKEN }}
         run: bun tauri android build --apk --target aarch64 --ci
 
       - name: Verify the signature
