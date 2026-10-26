@@ -196,6 +196,7 @@ async function tbaSourceRequest(endpoint: string, etag?: string | null): Promise
 }
 
 async function fetchTeamStats(): Promise<TeamStatsFetch> {
+  if (!__HASURA_HTTP_LINK__ || !__HASURA_BOARD_TOKEN__) return { kind: "not-set-up" };
   const response = await fetch(__HASURA_HTTP_LINK__, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${__HASURA_BOARD_TOKEN__}` },

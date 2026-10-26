@@ -52,4 +52,12 @@ describe("Team Stats fetch", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({ kind: "ok", answer: { team_stats: [teamStats(254), teamStats(1690), teamStats(5987)] } });
   });
+
+  it("reports Team Stats not set up in a build without the token", async () => {
+    buildWith("");
+    const fetch = databaseAnswers({ data: { team_stats: [teamStats(1690)] } });
+
+    expect(await fetchTeamStats()).toEqual({ kind: "not-set-up" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
