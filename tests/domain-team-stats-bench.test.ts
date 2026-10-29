@@ -88,12 +88,13 @@ describe("Bench Teams on the Stats tab", () => {
     ]);
   });
 
-  it("puts each Bench Team's dimmed card at the end of its alliance's row on Specific", () => {
-    const specific = tables(synced(playoff1)).stages.find((stage) => stage.label === "Specific");
+  it("puts each Bench Team's dimmed notes at the end of its alliance on Specific", () => {
+    const shown = tables(synced(playoff1));
+    const specific = shown.stages.find((stage) => stage.label === "Specific");
 
-    expect(specific?.cardRows.map(({ alliance, cards }) => [alliance, cards.map(({ column }) => [column.team, column.bench])])).toEqual([
-      ["red", [["254", false], ["4590", false], ["2230", false], ["5654", true]]],
-      ["blue", [["1690", false], ["1657", false], ["3339", false], ["3075", true]]],
+    expect(shown.columns.map(({ alliance, team, bench }, index) => [alliance, team, bench, specific?.notes[index] !== null])).toEqual([
+      ["red", "254", false, true], ["red", "4590", false, true], ["red", "2230", false, true], ["red", "5654", true, true],
+      ["blue", "1690", false, true], ["blue", "1657", false, true], ["blue", "3339", false, true], ["blue", "3075", true, true],
     ]);
   });
 

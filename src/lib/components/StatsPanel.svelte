@@ -5,14 +5,13 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { statsView, type StatsColumn, type StatsMark } from "$lib/domain";
+  import { plural, statsView, type StatsColumn, type StatsMark } from "$lib/domain";
   import { native } from "$lib/native/api";
   import type { MatchPacket, TeamStatsFetch } from "$lib/native/types";
   import { boardConfig } from "$lib/stores/config.svelte";
   import StatsFaultList from "./StatsFaultList.svelte";
-  import StatsTeamMarks from "./StatsTeamMarks.svelte";
 
-  const MARKS: Record<StatsMark, string> = { "green check": "fa-check mark-yes", "red cross": "fa-xmark mark-no", "grey cross": "fa-xmark mark-unknown" };
+  const MARKS: Record<StatsMark, string> = { "green check": "fa-check", "red cross": "fa-xmark", "grey cross": "fa-xmark faint" };
 
   let { packet }: { packet: MatchPacket } = $props();
 
@@ -28,6 +27,8 @@
 
   const view = $derived(statsView({ lastFetch, packet, chosenStage, teamColors: boardConfig.current.teamColors, autoLighten: boardConfig.current.autoLighten, now }));
   const stage = $derived(view.kind === "stats" ? view.stages.find((candidate) => candidate.chosen) : undefined);
+  // the columns left to right - null is the gap between the alliances
+  const slots = $derived(view.kind === "stats" ? view.alliances.flatMap(({ columnIndexes }, order) => (order ? [null, ...columnIndexes] : columnIndexes)) : []);
 
   function choose(label: string) {
     chosenStage = lastStage = label;
@@ -35,6 +36,18 @@
 
   function explain(label: string) {
     explained = explained === label ? null : label;
+  }
+
+  // a column too narrow for its tags' names draws them as dots rather than cutting a name off
+  function fitTags(tags: HTMLElement) {
+    const fit = () => {
+      tags.classList.remove("dots");
+      tags.classList.toggle("dots", tags.scrollWidth > tags.clientWidth);
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(tags.closest("th") ?? tags);
+    void document.fonts.ready.then(fit);
+    return () => observer.disconnect();
   }
 
   // a request can hang on a dead connection while a newer one goes through - the newer answer wins
@@ -73,28 +86,36 @@
       <i class="fas fa-star our-team" role="img" aria-label="Our Team"></i>
     {/if}
   </span>
-  <span class="place">{column.placeName}</span>
-  {#if column.noData}
-    <span class="no-data">No data</span>
-  {/if}
-  <StatsTeamMarks {column} />
+  <span class="team-meta">
+    <span>{column.placeName}</span>
+    {#if column.activeFaults}
+      <span class="fault-mark" role="img" aria-label={plural(column.activeFaults, "Active Fault")}><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{column.activeFaults}</span>
+    {/if}
+    {#if column.robotTags.length}
+      <span class="tags" {@attach fitTags}>
+        {#each column.robotTags as tag}
+          <span style:color={tag.color} dir={tag.dir} title={tag.name}>{tag.name}</span>
+        {/each}
+      </span>
+    {/if}
+    {#if column.noData}
+      <span class="faint">No data</span>
+    {/if}
+  </span>
 {/snippet}
 
 {#snippet rowLabel(label: string, explanation: string | null)}
   {#if explanation}
-    <button class="explain" aria-expanded={explained === label} onclick={() => explain(label)}>
-      <span>{label}</span>
-      <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
-    </button>
+    <button class="explain" aria-expanded={explained === label} onclick={() => explain(label)}><span>{label}</span></button>
   {:else}
     {label}
   {/if}
 {/snippet}
 
-{#snippet explanationRow(label: string, explanation: string | null, span: number)}
+{#snippet explanationRow(label: string, explanation: string | null)}
   {#if explanation && explained === label}
     <tr class="explanation">
-      <td colspan={span}><p>{explanation}</p></td>
+      <td colspan={slots.length + 1}><p>{explanation}</p></td>
     </tr>
   {/if}
 {/snippet}
@@ -107,7 +128,6 @@
     </div>
   {:else if view.kind === "notice"}
     <div id="stats-notice" class="stats-empty" role="status">
-      <i class="fas fa-chart-simple" aria-hidden="true"></i>
       <h2>{view.title}</h2>
       {#if view.detail}
         <p>{view.detail}</p>
@@ -120,169 +140,187 @@
           <button class="stage-tab" class:chosen={candidate.chosen} role="tab" aria-selected={candidate.chosen} onclick={() => choose(candidate.label)}>{candidate.label}</button>
         {/each}
       </div>
-      <p id="stats-estimated-score">
-        <span class="caption">Estimated score</span>
-        <span class="score red">{view.estimatedScores.red}</span>
-        <span class="versus">vs</span>
-        <span class="score blue">{view.estimatedScores.blue}</span>
-      </p>
-    </header>
-    <div id="stats-status">
-      {#if view.eventBanner}
-        <p id="stats-event-banner" class="notice warning" role="status">
-          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-          <strong>{view.eventBanner.title}</strong>
-          <span>{view.eventBanner.detail}</span>
+      <div id="stats-summary">
+        <p id="stats-estimated-score">
+          <span class="caption">Estimated score</span>
+          <span class="red">{view.estimatedScores.red}</span><span class="faint" aria-hidden="true">·</span><span class="blue">{view.estimatedScores.blue}</span>
         </p>
-      {/if}
-      <p id="stats-freshness" role="status">
-        {#if view.freshness.unreachable}
-          <span class="notice error">
-            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
-            <strong>{view.freshness.unreachable.title}</strong>
-            <span>{view.freshness.unreachable.detail}</span>
-          </span>
-        {/if}
-        <span class="confirmed" class:stale={view.freshness.stale}><i class="fa-regular fa-clock" aria-hidden="true"></i> {view.freshness.confirmed}</span>
-      </p>
-    </div>
+        <p id="stats-status" role="status">
+          {#if view.eventBanner}
+            <span id="stats-event-banner"><span class="warning">{view.eventBanner.title}</span> {view.eventBanner.detail}</span>
+          {/if}
+          {#if view.freshness.unreachable}
+            <span class="warning" title={view.freshness.unreachable.detail}>{view.freshness.unreachable.title}</span>
+          {/if}
+          <span class:warning={view.freshness.stale}>{view.freshness.confirmed}</span>
+        </p>
+      </div>
+    </header>
     <div class="stats-scroll flex-1 min-h-0 overflow-auto touch-pan-x touch-pan-y">
       <div class="stats-body">
-      {#if stage?.cardRows.length}
-        <div id="stats-cards">
-          {#each stage.cardRows as cardRow (cardRow.alliance)}
-            <div class="card-row">
-              {#each cardRow.cards as card (card.column.place)}
-                <article class="team-card {card.column.alliance}" class:bench={card.column.bench}>
-                  <header class="team-head {card.column.alliance}">{@render teamHeader(card.column)}</header>
-                  {#if card.notes}
-                    {#if card.notes.scouters || card.notes.defenseStarred}
-                      <p class="card-marks">
-                        {#if card.notes.scouters}
-                          <span>{card.notes.scouters}</span>
-                        {/if}
-                        {#if card.notes.defenseStarred}
-                          <span class="defense-starred"><i class="fas fa-shield-halved" aria-hidden="true"></i> Starred defense</span>
-                        {/if}
-                      </p>
-                    {/if}
-                    {#each card.notes.categories as category (category.label)}
-                      <!-- a hebrew note pulls its label to the right too - so each category reads as one block -->
-                      <section class="category" dir={category.dir}>
-                        <h3 dir="ltr">
-                          <span>{category.label}</span>
-                          {#if category.stars !== null}
-                            <span class="stars" dir="ltr" role="img" aria-label={`${category.stars} of 5 stars`}>
-                              {#each [1, 2, 3, 4, 5] as star (star)}
-                                <i class="fas fa-star" class:lit={star <= (category.stars ?? 0)} aria-hidden="true"></i>
-                              {/each}
-                            </span>
-                            {#if category.average}
-                              <span class="avg">avg</span>
-                            {/if}
-                          {/if}
-                        </h3>
-                        {#if category.latest}
-                          <p class="latest">{category.latest}</p>
-                        {/if}
-                        {#if category.more}
-                          <p class="more" dir="ltr">{category.more}</p>
-                        {/if}
-                      </section>
-                    {:else}
-                      <p class="no-notes">No notes</p>
-                    {/each}
-                  {/if}
-                </article>
-              {/each}
-            </div>
-          {/each}
-        </div>
-      {:else}
-        {@const span = view.columns.length + 1}
-        <table id="stats-table" style:min-width={`calc(8.5rem + ${view.columns.length} * 5.75rem)`}>
+        <table id="stats-table" style:min-width={`calc(var(--label-width) + var(--gap-width) + ${view.columns.length} * ${stage?.notes.length ? "8rem" : "5.5rem"})`}>
           <colgroup>
             <col class="label-column" />
-            {#each view.columns as column (column.place)}
-              <col />
+            {#each slots as index, slot (slot)}
+              <col class:gap-column={index === null} />
             {/each}
           </colgroup>
           <thead>
             <tr>
               <th class="row-label" scope="col"><span class="sr-only">Row</span></th>
-              {#each view.columns as column (column.place)}
-                <th class="team-head {column.alliance}" class:bench={column.bench} scope="col">{@render teamHeader(column)}</th>
+              {#each slots as index, slot (slot)}
+                {#if index === null}
+                  <td class="gap" aria-hidden="true"></td>
+                {:else}
+                  <th class="team-head" class:bench={view.columns[index].bench} scope="col">{@render teamHeader(view.columns[index])}</th>
+                {/if}
               {/each}
             </tr>
           </thead>
           <tbody>
-            {#if stage?.totals}
-              <tr class="totals">
-                <th class="row-label" scope="row">Alliance Total</th>
-                {#each view.alliances as { alliance, stationSpan, bench } (alliance)}
-                  {#if stationSpan}
-                    <td class={alliance} colspan={stationSpan}>{stage.totals[alliance]}</td>
-                  {/if}
-                  {#if bench}
-                    <td class="{alliance} bench"></td>
-                  {/if}
-                {/each}
-              </tr>
-            {/if}
-            {#each stage?.rows ?? [] as row (row.label)}
-              <tr>
-                <th class="row-label" class:explainable={row.explanation !== null} scope="row">{@render rowLabel(row.label, row.explanation)}</th>
-                {#each row.cells as cell, index (view.columns[index].place)}
-                  <td class={view.columns[index].alliance} class:bench={view.columns[index].bench} class:best={cell?.best}>
-                    {#if cell?.mark}
-                      <i class="fas {MARKS[cell.mark]}" aria-hidden="true"></i>
-                      <span class="sr-only">{cell.text}</span>
-                    {:else if cell}
-                      <span class="value" class:dash={cell.text === "-"}>{cell.text}</span>
-                    {/if}
-                  </td>
-                {/each}
-              </tr>
-              {@render explanationRow(row.label, row.explanation, span)}
-            {/each}
-            {#each stage?.grids ?? [] as grid (grid.label)}
-              <tr class="grid-head">
-                <th class="row-label" class:explainable={grid.explanation !== null} scope="rowgroup">
-                  {@render rowLabel(grid.label, grid.explanation)}
-                  <span class="grid-columns">{grid.columns.join(" · ")}</span>
-                </th>
-                {#each view.columns as column, index (column.place)}
-                  <td class={column.alliance} class:bench={column.bench}>
-                    {#if !column.noData && !grid.lines[0]?.cells[index]}
-                      <span class="value dash">-</span>
-                    {/if}
-                  </td>
-                {/each}
-              </tr>
-              {#each grid.lines as line, lineIndex (line.label)}
-                <tr class="grid-line" class:last={lineIndex === grid.lines.length - 1}>
-                  <th class="row-label" scope="row">{line.label}</th>
-                  {#each line.cells as cells, index (view.columns[index].place)}
-                    <td class={view.columns[index].alliance} class:bench={view.columns[index].bench}>
-                      {#if cells}
-                        <span class="slots">
-                          {#each cells as gridCell, cellIndex (cellIndex)}
-                            <span class:zero={gridCell.zero}>{gridCell.text}</span>
-                          {/each}
-                        </span>
+            {#if stage?.notes.length}
+              <tr class="notes">
+                <th class="row-label" scope="row"><span class="sr-only">Notes</span></th>
+                {#each slots as index, slot (slot)}
+                  {#if index === null}
+                    <td class="gap" aria-hidden="true"></td>
+                  {:else}
+                    {@const notes = stage.notes[index]}
+                    <td class:bench={view.columns[index].bench}>
+                      {#if notes}
+                        {#if notes.defenseStarred || notes.scouters}
+                          <p class="note-meta">
+                            {#if notes.defenseStarred}
+                              <span class="defense-starred"><i class="fas fa-shield-halved" aria-hidden="true"></i> Starred defense</span>
+                            {/if}
+                            {#if notes.scouters}
+                              <span>{notes.scouters}</span>
+                            {/if}
+                          </p>
+                        {/if}
+                        {#each notes.categories as category (category.label)}
+                          <section class="category" dir={category.dir}>
+                            <h3 dir="ltr">
+                              {category.label}
+                              {#if category.stars !== null}
+                                <span class="rating">
+                                  <span class="stars" role="img" aria-label={`${category.stars} of 5 stars`}>
+                                    {#each [1, 2, 3, 4, 5] as star (star)}
+                                      <i class="fas fa-star" class:lit={star <= (category.stars ?? 0)} aria-hidden="true"></i>
+                                    {/each}
+                                  </span>
+                                  {#if category.average}
+                                    avg
+                                  {/if}
+                                </span>
+                              {/if}
+                            </h3>
+                            {#if category.latest}
+                              <p class="latest">{category.latest}</p>
+                            {/if}
+                            {#if category.more}
+                              <p class="more" dir="ltr">{category.more}</p>
+                            {/if}
+                          </section>
+                        {:else}
+                          <p class="faint">No notes</p>
+                        {/each}
                       {/if}
                     </td>
+                  {/if}
+                {/each}
+              </tr>
+            {:else}
+              {#if stage?.totals}
+                <tr class="totals">
+                  <th class="row-label" scope="row">Alliance Total</th>
+                  {#each view.alliances as { alliance, stationSpan, bench }, order (alliance)}
+                    {#if order}
+                      <td class="gap" aria-hidden="true"></td>
+                    {/if}
+                    {#if stationSpan}
+                      <td class={alliance} colspan={stationSpan}>{stage.totals[alliance]}</td>
+                    {/if}
+                    {#if bench}
+                      <td></td>
+                    {/if}
                   {/each}
                 </tr>
+              {/if}
+              {#each stage?.rows ?? [] as row (row.label)}
+                <tr>
+                  <th class="row-label" scope="row">{@render rowLabel(row.label, row.explanation)}</th>
+                  {#each slots as index, slot (slot)}
+                    {#if index === null}
+                      <td class="gap" aria-hidden="true"></td>
+                    {:else}
+                      {@const cell = row.cells[index]}
+                      <td class:bench={view.columns[index].bench} class:best={cell?.best}>
+                        {#if cell?.mark}
+                          <i class="fas {MARKS[cell.mark]}" aria-hidden="true"></i>
+                          <span class="sr-only">{cell.text}</span>
+                        {:else if cell}
+                          <span class:faint={cell.text === "-"}>{cell.text}</span>
+                        {/if}
+                      </td>
+                    {/if}
+                  {/each}
+                </tr>
+                {@render explanationRow(row.label, row.explanation)}
               {/each}
-              {@render explanationRow(grid.label, grid.explanation, span)}
-            {/each}
+              {#each stage?.grids ?? [] as grid (grid.label)}
+                <tr class="grid-head">
+                  <th class="row-label" scope="rowgroup">
+                    {@render rowLabel(grid.label, grid.explanation)}
+                    <span class="grid-columns">{grid.columns.join(" · ")}</span>
+                  </th>
+                  {#each slots as index, slot (slot)}
+                    {#if index === null}
+                      <td class="gap" aria-hidden="true"></td>
+                    {:else}
+                      <td class:bench={view.columns[index].bench}>
+                        {#if !view.columns[index].noData && !grid.lines[0]?.cells[index]}
+                          <span class="faint">-</span>
+                        {/if}
+                      </td>
+                    {/if}
+                  {/each}
+                </tr>
+                {#each grid.lines as line (line.label)}
+                  <tr class="grid-line">
+                    <th class="row-label" scope="row">{line.label}</th>
+                    {#each slots as index, slot (slot)}
+                      {#if index === null}
+                        <td class="gap" aria-hidden="true"></td>
+                      {:else}
+                        {@const cells = line.cells[index]}
+                        <td class:bench={view.columns[index].bench}>
+                          {#if cells}
+                            <span class="slots">
+                              {#each cells as gridCell, cellIndex (cellIndex)}
+                                <span>
+                                  {#if gridCell.zero}
+                                    <span class="sr-only">{gridCell.text}</span>
+                                  {:else}
+                                    {gridCell.text}
+                                  {/if}
+                                </span>
+                              {/each}
+                            </span>
+                          {/if}
+                        </td>
+                      {/if}
+                    {/each}
+                  </tr>
+                {/each}
+                {@render explanationRow(grid.label, grid.explanation)}
+              {/each}
+            {/if}
           </tbody>
         </table>
-      {/if}
-      {#if stage?.faults.length}
-        <StatsFaultList teams={stage.faults} />
-      {/if}
+        {#if stage?.faults.length}
+          <StatsFaultList teams={stage.faults} />
+        {/if}
       </div>
     </div>
   {/if}
@@ -290,21 +328,24 @@
 
 <style>
   #stats-panel {
-    --text: #e8e8e8;
-    --text-soft: #c8c8c8;
-    --secondary: #999;
-    --muted: #6e6e6e;
-    --faint: #3a3a3a;
-    --rule: #1c1c1c;
-    --rule-strong: #2a2a2a;
-    --red: #dc2626;
-    --blue: #2563eb;
-    --red-text: #c97070;
-    --blue-text: #6090c9;
-    --warning: #eab308;
-    --error: #e89090;
-    color: var(--text);
+    --page: #0d0d0d;
+    --hi: #ececec;
+    --mid: #8c8c8c;
+    --lo: #3c3c3c;
+    --red: #ec6a63;
+    --blue: #5f9cf0;
+    --warning: #d4a33b;
+    --large: 1.2rem;
+    --medium: 0.95rem;
+    --small: 0.78rem;
+    --label-width: 7.5rem;
+    --gap-width: 2rem;
+    color: var(--mid);
+    font-size: var(--medium);
+    font-variant-numeric: tabular-nums;
   }
+
+  .faint { color: var(--lo); }
 
   .stats-empty {
     display: flex;
@@ -316,25 +357,22 @@
     padding: 2rem;
     text-align: center;
   }
-  .stats-empty i {
-    margin-bottom: 0.5rem;
-    color: var(--faint);
-    font-size: 2rem;
-  }
   .stats-empty h2 {
-    font-size: 1.15rem;
+    color: var(--hi);
+    font-size: var(--medium);
     font-weight: 600;
   }
   .stats-empty p {
     max-width: 28rem;
-    color: var(--secondary);
+    font-size: var(--small);
+    line-height: 1.5;
   }
   .spinner {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
     margin-bottom: 0.25rem;
-    border: 3px solid #222;
-    border-top-color: #777;
+    border: 2px solid var(--lo);
+    border-top-color: var(--mid);
     border-radius: 999px;
     animation: spin 0.9s linear infinite;
   }
@@ -345,387 +383,274 @@
   #stats-head {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 0.75rem 1.5rem;
-    padding: 1rem 1.5rem 0;
+    gap: 0.5rem 2rem;
+    padding: 1.1rem 1.5rem 0;
   }
+  /* the tabs' padding is their touch target - the negative margin lines the first label up with the row labels */
   #stats-stages {
     display: flex;
-    gap: 0.125rem;
-    padding: 0.25rem;
-    border-radius: 10px;
-    background: #151515;
+    margin-left: -0.75rem;
   }
   .stage-tab {
-    min-height: 2.5rem;
-    padding: 0 1rem;
+    min-width: 0;
+    padding: 0.35rem 0.75rem 0.6rem;
     border: none;
-    border-radius: 7px;
-    background: transparent;
-    color: #8a8a8a;
-    font-family: inherit;
-    font-size: 0.95rem;
-    font-weight: 600;
+    background: none;
+    color: var(--mid);
+    font: inherit;
+    font-size: var(--medium);
+    font-weight: 500;
     cursor: pointer;
   }
-  @media (hover: hover) {
-    .stage-tab:hover { color: var(--text); }
-  }
   .stage-tab.chosen {
-    background: #2a2a2a;
-    color: #f4f4f4;
+    color: var(--hi);
+    text-decoration: underline 1.5px;
+    text-underline-offset: 0.6em;
+  }
+  @media (hover: hover) {
+    .stage-tab:hover { color: var(--hi); }
+  }
+
+  #stats-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+    margin-left: auto;
+    text-align: right;
   }
   #stats-estimated-score {
     display: flex;
     align-items: baseline;
-    gap: 0.6rem;
+    gap: 0.5rem;
+    color: var(--hi);
+    font-size: var(--large);
+    font-weight: 600;
+    line-height: 1.2;
   }
   #stats-estimated-score .caption {
-    margin-right: 0.25rem;
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    margin-right: 0.35rem;
+    color: var(--mid);
+    font-size: var(--small);
+    font-weight: 400;
   }
-  .score {
-    font-size: 1.6rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-  .score.red { color: var(--red-text); }
-  .score.blue { color: var(--blue-text); }
-  .versus {
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
+  #stats-estimated-score .red { color: var(--red); }
+  #stats-estimated-score .blue { color: var(--blue); }
   #stats-status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem 1rem;
-    padding: 0.6rem 1.5rem 0.5rem;
-    font-size: 0.8rem;
+    font-size: var(--small);
   }
-  #stats-freshness {
-    display: contents;
+  #stats-status > * + *::before {
+    content: "·";
+    margin: 0 0.5em;
+    color: var(--lo);
   }
-  .confirmed { color: var(--muted); }
-  .confirmed.stale { color: #b8962e; }
-  .notice {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.45rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-  }
-  .notice strong { font-weight: 600; }
-  .notice span { color: var(--secondary); }
-  .notice.warning { background: rgba(234, 179, 8, 0.1); }
-  .notice.warning i,
-  .notice.warning strong { color: var(--warning); }
-  .notice.error { background: rgba(220, 38, 38, 0.12); }
-  .notice.error i,
-  .notice.error strong { color: var(--error); }
+  #stats-status .warning { color: var(--warning); }
 
   /* the padding sits inside the scroll box - on the box itself the sticky header would stop short of its top and rows would show above it */
   .stats-body {
-    padding: 0.25rem 1.5rem 1.5rem;
+    padding: 0.5rem 1.5rem 2rem;
   }
 
   #stats-table {
     width: 100%;
     table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-variant-numeric: tabular-nums;
+    border-collapse: collapse;
   }
-  .label-column { width: 8.5rem; }
+  .label-column { width: var(--label-width); }
+  .gap-column { width: var(--gap-width); }
   #stats-table th,
   #stats-table td {
-    padding: 0.5rem 0.4rem;
-    border-bottom: 1px solid var(--rule);
+    padding: 0.45rem 0.35rem;
+    font-weight: 400;
+    line-height: 1.35;
     text-align: center;
-  }
-  #stats-table td {
-    color: var(--text-soft);
-    font-size: 1rem;
     white-space: nowrap;
   }
-  #stats-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    padding-top: 0.6rem;
-    border-bottom-color: var(--rule-strong);
-    background: #0d0d0d;
-    vertical-align: top;
+  #stats-table td.best {
+    color: var(--hi);
+    font-weight: 600;
   }
   #stats-table .row-label {
     position: sticky;
     left: 0;
-    z-index: 2;
+    z-index: 1;
     padding-left: 0;
-    background: #0d0d0d;
-    color: var(--secondary);
-    font-size: 0.9rem;
-    font-weight: 500;
-    line-height: 1.25;
+    background: var(--page);
+    font-size: var(--small);
     text-align: left;
+    white-space: normal;
+  }
+
+  #stats-table thead th,
+  #stats-table thead td {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 0.5rem 0.2rem 0.9rem;
+    background: var(--page);
+    vertical-align: top;
   }
   #stats-table thead .row-label { z-index: 3; }
-  #stats-table .red + .blue { border-left: 1px solid var(--rule-strong); }
-
-  .team-head {
-    border-top: 2px solid transparent;
-  }
-  #stats-table .team-head { white-space: normal; }
-  .team-head.red { border-top-color: var(--red); }
-  .team-head.blue { border-top-color: var(--blue); }
   #stats-table .team-head > span { display: block; }
-  #stats-table .team-head > .team-line {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
+  .team-line {
+    position: relative;
+    width: fit-content;
+    margin: 0 auto;
   }
   .team-number {
-    font-size: 1.3rem;
+    font-size: var(--large);
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.25;
   }
+  /* hangs off the number so the number stays centered over its values */
   .our-team {
-    color: #facc15;
-    font-size: 0.8rem;
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    margin-left: 0.3rem;
+    color: var(--hi);
+    font-size: 0.6rem;
+    transform: translateY(-50%);
   }
-  .place {
-    color: var(--muted);
-    font-size: 0.78rem;
+  /* only the tags give way when a column is narrow - the Station and the fault mark always show */
+  #stats-table .team-head > .team-meta {
+    display: flex;
+    justify-content: center;
+    gap: 0.45em;
+    margin-top: 0.15rem;
+    font-size: var(--small);
+  }
+  .team-meta > * { flex: none; }
+  .team-meta > .tags {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tags > * + * { margin-left: 0.35rem; }
+  .tags:global(.dots) > span { font-size: 0; }
+  .tags:global(.dots) > span::before {
+    content: "";
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .fault-mark { color: var(--red); }
+  .fault-mark i {
+    margin-right: 0.2em;
+    font-size: 0.85em;
+  }
+
+  /* the sticky header stays opaque so rows scrolling under it never show through - only what's on it dims */
+  #stats-table .bench > * { opacity: 0.4; }
+
+  #stats-table tr.totals td {
+    padding-bottom: 0.9rem;
     font-weight: 600;
   }
-  .team-head.red .place { color: var(--red-text); }
-  .team-head.blue .place { color: var(--blue-text); }
-  .no-data {
-    margin-top: 0.2rem;
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-style: italic;
-  }
-  /* the sticky header stays opaque so rows scrolling under it never show through - only what's on it dims */
-  #stats-table .team-head.bench > :global(*),
-  td.bench > *,
-  .team-card.bench { opacity: 0.5; }
-  #stats-table .team-head.bench.red { border-top-color: rgba(220, 38, 38, 0.4); }
-  #stats-table .team-head.bench.blue { border-top-color: rgba(37, 99, 235, 0.4); }
+  #stats-table tr.totals .red { color: var(--red); }
+  #stats-table tr.totals .blue { color: var(--blue); }
+  #stats-table tr.totals .row-label { padding-bottom: 0.9rem; }
 
-  .value.dash { color: var(--faint); }
-  td.best .value {
-    display: inline-block;
-    margin: -0.15rem 0;
-    padding: 0.15rem 0.55rem;
-    border-radius: 5px;
-    color: #ffffff;
-    font-weight: 700;
-  }
-  td.best.red .value { background: rgba(220, 38, 38, 0.26); }
-  td.best.blue .value { background: rgba(37, 99, 235, 0.32); }
-
-  #stats-table tr.totals > * { border-bottom-color: var(--rule-strong); }
-  #stats-table tr.totals td {
-    font-size: 1.15rem;
-    font-weight: 700;
-  }
-  #stats-table tr.totals td.red { color: var(--red-text); }
-  #stats-table tr.totals td.blue { color: var(--blue-text); }
-
-  #stats-table .row-label.explainable { padding: 0; }
   .explain {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+    display: block;
     width: 100%;
-    min-height: 2.5rem;
-    padding: 0.4rem 0.4rem 0.4rem 0;
+    min-height: 2.25rem;
+    margin: -0.45rem 0;
+    padding: 0;
     border: none;
-    background: transparent;
+    background: none;
     color: inherit;
     font: inherit;
     text-align: left;
     cursor: pointer;
   }
-  .explain i {
-    color: var(--muted);
-    font-size: 0.8rem;
+  .explain span {
+    text-decoration: underline dotted var(--lo);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 0.3em;
   }
-  .explain[aria-expanded="true"],
-  .explain[aria-expanded="true"] i { color: var(--text); }
+  .explain[aria-expanded="true"] { color: var(--hi); }
   #stats-table tr.explanation td {
-    padding: 0 0 0.6rem;
+    padding: 0 0 0.9rem;
+    text-align: left;
     white-space: normal;
   }
   tr.explanation p {
     position: sticky;
     left: 0;
-    max-width: 36rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    background: #151515;
-    color: var(--secondary);
-    font-size: 0.85rem;
-    line-height: 1.4;
-    text-align: left;
+    max-width: 34rem;
+    font-size: var(--small);
+    line-height: 1.5;
   }
-
-  .mark-yes { color: #4caf50; }
-  .mark-no { color: #e06666; }
-  .mark-unknown { color: #5a5a5a; }
 
   #stats-table tr.grid-head > * {
-    padding-top: 0.75rem;
-    padding-bottom: 0.25rem;
-    border-bottom: none;
+    padding-top: 1.1rem;
     vertical-align: top;
   }
+  #stats-table tr.grid-head .explain { margin-bottom: -0.6rem; }
+  .grid-columns {
+    display: block;
+    color: var(--lo);
+    font-size: var(--small);
+  }
   #stats-table tr.grid-line > * {
-    padding-top: 0.1rem;
-    padding-bottom: 0.1rem;
-    border-bottom: none;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
   }
-  #stats-table tr.grid-line.last > * {
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid var(--rule);
-  }
-  #stats-table tr.grid-line .row-label {
-    padding-left: 0.75rem;
-    color: var(--muted);
-    font-size: 0.8rem;
-  }
+  #stats-table tr.grid-line .row-label { padding-left: 0.6rem; }
   .slots {
     display: grid;
     grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;
-    max-width: 8rem;
+    max-width: 7.5rem;
     margin: 0 auto;
-    font-size: 0.85rem;
-  }
-  .grid-columns {
-    display: block;
-    color: var(--muted);
-    font-size: 0.72rem;
-  }
-  #stats-table .row-label.explainable .grid-columns { margin-top: -0.4rem; padding-bottom: 0.2rem; }
-  tr.grid-line .slots {
-    color: var(--text);
-    font-weight: 600;
-  }
-  .slots .zero {
-    color: var(--faint);
-    font-weight: 400;
+    font-size: var(--small);
   }
 
-  #stats-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    padding-top: 0.5rem;
+  #stats-table tr.notes td {
+    padding-top: 0.25rem;
+    white-space: normal;
+    vertical-align: top;
   }
-  .card-row {
-    display: grid;
-    grid-auto-columns: minmax(10.5rem, 1fr);
-    grid-auto-flow: column;
-    gap: 0.75rem;
-    align-items: start;
+  .note-meta {
+    margin-bottom: 1rem;
+    font-size: var(--small);
   }
-  .team-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.9rem;
-    padding: 0.7rem 0.9rem 0.9rem;
-    border-top: 2px solid transparent;
-    border-radius: 2px 2px 8px 8px;
-    background: #131313;
-  }
-  .team-card.red { border-top-color: var(--red); }
-  .team-card.blue { border-top-color: var(--blue); }
-  .team-card.bench.red { border-top-color: rgba(220, 38, 38, 0.4); }
-  .team-card.bench.blue { border-top-color: rgba(37, 99, 235, 0.4); }
-  .team-card .team-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.15rem 0.6rem;
-    border-top: none;
-  }
-  .team-card .team-number { font-size: 1.2rem; }
-  .team-card .no-data { flex-basis: 100%; }
-  .team-card .team-head :global(.marks) {
-    flex-basis: 100%;
-    justify-content: flex-start;
-    max-width: none;
-    margin: 0.15rem 0 0;
-  }
-  .card-marks {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.75rem;
-    margin-top: -0.4rem;
-    color: var(--secondary);
-    font-size: 0.78rem;
-  }
-  .defense-starred {
-    padding: 0.1rem 0.5rem;
-    border-radius: 5px;
-    background: rgba(250, 204, 21, 0.12);
-    color: #e0b84a;
-    font-weight: 600;
-  }
+  .note-meta > * { display: block; }
+  .defense-starred { color: var(--hi); }
+  .category + .category { margin-top: 1.1rem; }
   .category h3 {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem 0.5rem;
-    color: var(--muted);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: var(--small);
+    font-weight: 400;
   }
-  .category[dir="rtl"] h3 { justify-content: flex-end; }
-  .category[dir="rtl"] .more { text-align: right; }
+  .rating {
+    margin-left: 0.2rem;
+    white-space: nowrap;
+  }
   .stars {
     display: inline-flex;
     gap: 0.1rem;
-    color: #333;
-    font-size: 0.7rem;
+    margin-right: 0.1rem;
+    color: var(--lo);
+    font-size: 0.55rem;
+    vertical-align: 0.1em;
   }
-  .stars .lit { color: #f5b82e; }
-  .avg {
-    color: var(--muted);
-    font-weight: 600;
-    letter-spacing: 0;
-    text-transform: none;
-  }
+  .stars .lit { color: var(--mid); }
   .latest {
-    margin-top: 0.25rem;
-    color: var(--text);
-    font-size: 0.95rem;
+    margin-top: 0.2rem;
+    color: var(--hi);
     line-height: 1.45;
     white-space: pre-line;
     overflow-wrap: anywhere;
   }
   .more {
     margin-top: 0.15rem;
-    color: var(--muted);
-    font-size: 0.75rem;
+    font-size: var(--small);
   }
-  .no-notes {
-    color: var(--muted);
-    font-size: 0.85rem;
-    font-style: italic;
-  }
+  #stats-table tr.notes .faint { font-size: var(--small); }
 </style>

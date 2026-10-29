@@ -95,7 +95,7 @@ export interface StatsRow {
 
 export interface StatsGridCell {
   text: string;
-  // reads nought - drawn faint so the cells with something in them stand out
+  // reads nought - left blank so only the real attempts show
   zero: boolean;
 }
 
@@ -139,18 +139,6 @@ export interface StatsNotes {
   categories: StatsNoteCategory[];
 }
 
-export interface StatsCard {
-  // headed like the team's column in the tables
-  column: StatsColumn;
-  // null when the team has no Team Stats
-  notes: StatsNotes | null;
-}
-
-export interface StatsCardRow {
-  alliance: AllianceColor;
-  cards: StatsCard[];
-}
-
 export interface StatsStage {
   label: string;
   chosen: boolean;
@@ -159,8 +147,8 @@ export interface StatsStage {
   rows: StatsRow[];
   // drawn below the Stage's table
   grids: StatsGrid[];
-  // a Stage of notes draws a card per team instead of a table
-  cardRows: StatsCardRow[];
+  // a Stage of notes draws them under each team's header instead of rows - one per column and null where the team has no Team Stats
+  notes: Array<StatsNotes | null>;
   // listed below the table - only Pit has any
   faults: StatsTeamFaults[];
 }
@@ -378,10 +366,6 @@ function alliancesOf(columns: StatsColumn[]): StatsAlliance[] {
   });
 }
 
-function cardRows(alliances: StatsAlliance[], cards: StatsCard[]): StatsCardRow[] {
-  return alliances.map(({ alliance, columnIndexes }) => ({ alliance, cards: columnIndexes.map((index) => cards[index]) }));
-}
-
 function estimatedPoints(payload: JsonValue | undefined): number | null {
   return isObject(payload) && typeof payload.estimated_points === "number" ? payload.estimated_points : null;
 }
@@ -487,9 +471,9 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
     });
     const totals = teamStages.some((stage) => stage?.total !== undefined) ? allianceSums(columns, teamStages.map((stage) => stage?.total ?? null)) : null;
     const notes = teams.map(({ payload }) => notesIn(payload, label));
-    const cards = columns.map((column, index) => ({ column, notes: column.noData ? null : stageNotes(notes[index]) }));
+    const columnNotes = notes.some(Boolean) ? columns.map((column, index) => (column.noData ? null : stageNotes(notes[index]))) : [];
     // the first Stage is Pit - the board never goes by a Stage's label
-    return { label, chosen: label === chosen, totals, rows, grids, cardRows: notes.some(Boolean) ? cardRows(alliances, cards) : [], faults: label === labels[0] ? faults : [] };
+    return { label, chosen: label === chosen, totals, rows, grids, notes: columnNotes, faults: label === labels[0] ? faults : [] };
   });
   return {
     kind: "stats", columns, alliances, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,

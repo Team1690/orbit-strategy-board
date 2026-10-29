@@ -37,28 +37,31 @@ function notesOf(answer: TeamStatsAnswer, team: number): JsonObject {
   return notes as JsonObject;
 }
 
-function cardOf(shown: ReturnType<typeof tables>, team: string) {
-  const found = stage(shown, "Specific").cardRows.flatMap((row) => row.cards).find((card) => card.column.team === team);
-  if (!found) throw new Error(`no Specific card for ${team}`);
-  return found;
+function columnOf(shown: ReturnType<typeof tables>, team: string) {
+  const index = shown.columns.findIndex((column) => column.team === team);
+  if (index < 0) throw new Error(`no column for ${team}`);
+  return { column: shown.columns[index], notes: stage(shown, "Specific").notes[index] };
 }
 
 function notesOn(shown: ReturnType<typeof tables>, team: string) {
-  const notes = cardOf(shown, team).notes;
-  if (!notes) throw new Error(`${team}'s Specific card has no notes`);
+  const { notes } = columnOf(shown, team);
+  if (!notes) throw new Error(`${team} has no Specific notes`);
   return notes;
 }
 
 describe("Specific Stage", () => {
-  it("draws one card per Station team in Station order, Red row then Blue row, each headed like the team's column", () => {
+  it("draws each Station team's notes in its column, in Station order, under the same headers as the tables", () => {
     const shown = tables(quals5());
     const specific = stage(shown, "Specific");
 
-    expect(specific.cardRows.map((row) => [row.alliance, row.cards.map((card) => card.column.team)])).toEqual([
-      ["red", ["254", "4590", "2230"]],
-      ["blue", ["1690", "1657", "3339"]],
+    expect(shown.columns.map(({ alliance, team }, index) => [alliance, team, specific.notes[index]?.categories.map((category) => category.label)])).toEqual([
+      ["red", "254", ["Scoring", "Defense"]],
+      ["red", "4590", []],
+      ["red", "2230", ["General"]],
+      ["blue", "1690", ["General", "Driving", "Climbing"]],
+      ["blue", "1657", []],
+      ["blue", "3339", ["Driving"]],
     ]);
-    expect(specific.cardRows.flatMap((row) => row.cards.map((card) => card.column))).toEqual(shown.columns);
     expect(specific.rows).toEqual([]);
   });
 
@@ -104,13 +107,13 @@ describe("Specific Stage", () => {
     expect(notesOn(tables(quals5(), { lastFetch: { kind: "ok", answer } }), "1690").categories[2].dir).toBe("rtl");
   });
 
-  it("gives a team without Team Stats a card with no notes, headed No data like its column", () => {
-    const card = cardOf(tables(quals5(["254", "4590", "5987"])), "5987");
+  it("gives a team without Team Stats no notes, headed No data like its column", () => {
+    const { column, notes } = columnOf(tables(quals5(["254", "4590", "5987"])), "5987");
 
-    expect([card.column.noData, card.notes]).toEqual([true, null]);
+    expect([column.noData, notes]).toEqual([true, null]);
   });
 
-  it("gives a team nobody wrote about a card with nothing on it", () => {
+  it("gives a team nobody wrote about nothing under its header", () => {
     expect(notesOn(tables(quals5()), "4590")).toEqual({ scouters: null, defenseStarred: false, categories: [] });
   });
 
@@ -124,6 +127,6 @@ describe("Specific Stage", () => {
   });
 
   it("leaves the Stages of rows as tables", () => {
-    expect(tables(quals5()).stages.filter((candidate) => candidate.cardRows.length).map((candidate) => candidate.label)).toEqual(["Specific"]);
+    expect(tables(quals5()).stages.filter((candidate) => candidate.notes.length).map((candidate) => candidate.label)).toEqual(["Specific"]);
   });
 });

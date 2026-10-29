@@ -95,7 +95,7 @@ describe("Stats tab small grids", () => {
     ]);
   });
 
-  it("draws a cell that reads nought faint, so the cells with something in them stand out", () => {
+  it("marks a cell that reads nought, so only the real attempts show", () => {
     const ours = climbLadder().lines.map((line) => line.cells[3]);
 
     expect(ours.map((cells) => cells?.map((cell) => cell.zero))).toEqual([[true, false, true], [false, true, true], [true, true, true]]);
