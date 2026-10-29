@@ -158,7 +158,7 @@
     </header>
     <div class="stats-scroll flex-1 min-h-0 overflow-auto touch-pan-x touch-pan-y">
       <div class="stats-body">
-        <table id="stats-table" style:min-width={`calc(var(--label-width) + var(--gap-width) + ${view.columns.length} * ${stage?.notes.length ? "8rem" : "5.5rem"})`}>
+        <table id="stats-table" style:min-width={`calc(var(--label-width) + var(--gap-width) + ${view.columns.length} * 5.5rem)`}>
           <colgroup>
             <col class="label-column" />
             {#each slots as index, slot (slot)}
@@ -383,7 +383,7 @@
   #stats-head {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: baseline;
     justify-content: space-between;
     gap: 0.5rem 2rem;
     padding: 1.1rem 1.5rem 0;
@@ -462,12 +462,15 @@
   .gap-column { width: var(--gap-width); }
   #stats-table th,
   #stats-table td {
-    padding: 0.45rem 0.35rem;
+    padding: 0.55rem 0.35rem;
     font-weight: 400;
     line-height: 1.35;
     text-align: center;
     white-space: nowrap;
   }
+  /* labels are smaller than the values beside them - so they share a baseline rather than a middle */
+  #stats-table tbody th,
+  #stats-table tbody td { vertical-align: baseline; }
   #stats-table td.best {
     color: var(--hi);
     font-weight: 600;
@@ -559,8 +562,8 @@
   .explain {
     display: block;
     width: 100%;
-    min-height: 2.25rem;
-    margin: -0.45rem 0;
+    min-height: 2.5rem;
+    margin: -0.55rem 0;
     padding: 0;
     border: none;
     background: none;
@@ -576,7 +579,7 @@
   }
   .explain[aria-expanded="true"] { color: var(--hi); }
   #stats-table tr.explanation td {
-    padding: 0 0 0.9rem;
+    padding: 0.1rem 0 0.9rem;
     text-align: left;
     white-space: normal;
   }
@@ -592,12 +595,12 @@
     padding-top: 1.1rem;
     vertical-align: top;
   }
-  #stats-table tr.grid-head .explain { margin-bottom: -0.6rem; }
+  #stats-table tr.grid-head .explain { margin-bottom: -0.7rem; }
   .grid-columns {
     display: block;
-    color: var(--lo);
     font-size: var(--small);
   }
+  #stats-table tr.grid-line + tr.explanation td { padding-top: 0.6rem; }
   #stats-table tr.grid-line > * {
     padding-top: 0.15rem;
     padding-bottom: 0.15rem;
