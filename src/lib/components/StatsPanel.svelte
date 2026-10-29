@@ -153,46 +153,45 @@
           {#each stage.cardRows as cardRow (cardRow.alliance)}
             <div class="card-row">
               {#each cardRow.cards as card (card.column.place)}
-                <article class="team-card" class:bench={card.column.bench}>
+                <article class="team-card {card.column.alliance}" class:bench={card.column.bench}>
                   <header class="team-head {card.column.alliance}">{@render teamHeader(card.column)}</header>
                   {#if card.notes}
-                    <div class="notes">
-                      {#if card.notes.scouters || card.notes.defenseStarred}
-                        <p class="card-marks">
-                          {#if card.notes.scouters}
-                            <span>{card.notes.scouters}</span>
-                          {/if}
-                          {#if card.notes.defenseStarred}
-                            <span class="defense-starred"><i class="fas fa-star" aria-hidden="true"></i> Starred defense</span>
-                          {/if}
-                        </p>
-                      {/if}
-                      {#each card.notes.categories as category (category.label)}
-                        <section>
-                          <h3 class="category-head">
-                            {category.label}
-                            {#if category.stars !== null}
-                              <span class="stars" role="img" aria-label={`${category.stars} of 5 stars`}>
-                                {#each [1, 2, 3, 4, 5] as star (star)}
-                                  <i class={star <= (category.stars ?? 0) ? "fas fa-star lit" : "fa-regular fa-star"} aria-hidden="true"></i>
-                                {/each}
-                              </span>
-                              {#if category.average}
-                                <span class="avg">avg</span>
-                              {/if}
+                    {#if card.notes.scouters || card.notes.defenseStarred}
+                      <p class="card-marks">
+                        {#if card.notes.scouters}
+                          <span>{card.notes.scouters}</span>
+                        {/if}
+                        {#if card.notes.defenseStarred}
+                          <span class="defense-starred"><i class="fas fa-shield-halved" aria-hidden="true"></i> Starred defense</span>
+                        {/if}
+                      </p>
+                    {/if}
+                    {#each card.notes.categories as category (category.label)}
+                      <!-- a hebrew note pulls its label to the right too - so each category reads as one block -->
+                      <section class="category" dir={category.dir}>
+                        <h3>
+                          <span>{category.label}</span>
+                          {#if category.stars !== null}
+                            <span class="stars" dir="ltr" role="img" aria-label={`${category.stars} of 5 stars`}>
+                              {#each [1, 2, 3, 4, 5] as star (star)}
+                                <i class="fas fa-star" class:lit={star <= (category.stars ?? 0)} aria-hidden="true"></i>
+                              {/each}
+                            </span>
+                            {#if category.average}
+                              <span class="avg">avg</span>
                             {/if}
-                          </h3>
-                          {#if category.latest}
-                            <p class="latest" dir={category.dir}>{category.latest}</p>
                           {/if}
-                          {#if category.more}
-                            <p class="more">{category.more}</p>
-                          {/if}
-                        </section>
-                      {:else}
-                        <p class="no-notes">No notes</p>
-                      {/each}
-                    </div>
+                        </h3>
+                        {#if category.latest}
+                          <p class="latest">{category.latest}</p>
+                        {/if}
+                        {#if category.more}
+                          <p class="more">{category.more}</p>
+                        {/if}
+                      </section>
+                    {:else}
+                      <p class="no-notes">No notes</p>
+                    {/each}
                   {/if}
                 </article>
               {/each}
@@ -485,8 +484,8 @@
   #stats-table .team-head { white-space: normal; }
   .team-head.red { border-top-color: var(--red); }
   .team-head.blue { border-top-color: var(--blue); }
-  .team-head > span { display: block; }
-  .team-head > .team-line {
+  #stats-table .team-head > span { display: block; }
+  #stats-table .team-head > .team-line {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -629,83 +628,99 @@
   #stats-cards {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
+    padding-top: 0.5rem;
   }
   .card-row {
     display: grid;
+    grid-auto-columns: minmax(10.5rem, 1fr);
     grid-auto-flow: column;
-    grid-auto-columns: minmax(15rem, 1fr);
     gap: 0.75rem;
     align-items: start;
   }
   .team-card {
-    overflow: hidden;
-    border: 1px solid #1e1e1e;
-    border-radius: 6px;
-    background: #141414;
-    color: #e8e8e8;
-  }
-  .team-card .team-head {
-    padding: 0.55rem 0.75rem;
-    border-bottom: 1px solid #1e1e1e;
-    background: #111111;
-    text-align: center;
-  }
-  .notes {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
-    padding: 0.75rem 0.9rem 0.9rem;
+    gap: 0.9rem;
+    padding: 0.7rem 0.9rem 0.9rem;
+    border-top: 2px solid transparent;
+    border-radius: 2px 2px 8px 8px;
+    background: #131313;
+  }
+  .team-card.red { border-top-color: var(--red); }
+  .team-card.blue { border-top-color: var(--blue); }
+  .team-card.bench.red { border-top-color: rgba(220, 38, 38, 0.4); }
+  .team-card.bench.blue { border-top-color: rgba(37, 99, 235, 0.4); }
+  .team-card .team-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.6rem;
+    border-top: none;
+  }
+  .team-card .team-number { font-size: 1.2rem; }
+  .team-card .no-data { flex-basis: 100%; }
+  .team-card .team-head :global(.marks) {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    max-width: none;
+    margin: 0.15rem 0 0;
   }
   .card-marks {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    color: #999;
-    font-size: 0.8rem;
-    font-weight: 600;
+    gap: 0.35rem 0.75rem;
+    margin-top: -0.4rem;
+    color: var(--secondary);
+    font-size: 0.78rem;
   }
   .defense-starred {
-    padding: 0.1rem 0.55rem;
-    border: 1px solid #5c4d1a;
-    border-radius: 999px;
-    color: #d4af37;
+    padding: 0.1rem 0.5rem;
+    border-radius: 5px;
+    background: rgba(250, 204, 21, 0.12);
+    color: #e0b84a;
+    font-weight: 600;
   }
-  .category-head {
+  .category h3 {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.4rem;
-    color: #999;
-    font-size: 0.8rem;
+    gap: 0.25rem 0.5rem;
+    color: var(--muted);
+    font-size: 0.7rem;
     font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
   .stars {
     display: inline-flex;
     gap: 0.1rem;
-    color: #555;
-    font-size: 0.75rem;
-  }
-  .stars .lit { color: #ffc107; }
-  .avg {
-    color: #777;
+    color: #333;
     font-size: 0.7rem;
+  }
+  .stars .lit { color: #f5b82e; }
+  .avg {
+    color: var(--muted);
     font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
   }
   .latest {
     margin-top: 0.25rem;
-    line-height: 1.4;
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.45;
     white-space: pre-line;
     overflow-wrap: anywhere;
   }
   .more {
-    margin-top: 0.2rem;
-    color: #777;
-    font-size: 0.8rem;
+    margin-top: 0.15rem;
+    color: var(--muted);
+    font-size: 0.75rem;
   }
   .no-notes {
-    color: #777;
+    color: var(--muted);
     font-size: 0.85rem;
     font-style: italic;
   }
