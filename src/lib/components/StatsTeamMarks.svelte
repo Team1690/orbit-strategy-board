@@ -24,30 +24,31 @@
     justify-content: center;
     gap: 0.25rem;
     max-width: 10rem;
-    margin: 0.35rem auto 0;
+    margin: 0.4rem auto 0;
     white-space: normal;
+  }
+  .fault-marker,
+  .tag {
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
   }
   .fault-marker {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.1rem 0.5rem;
-    border-radius: 999px;
-    background: #dc2626;
-    color: #ffffff;
-    font-size: 0.8rem;
+    gap: 0.25rem;
+    background: rgba(220, 38, 38, 0.18);
+    color: #f07a7a;
     font-weight: 700;
   }
+  .fault-marker i { font-size: 0.65rem; }
   .tag {
     max-width: 100%;
-    padding: 0.1rem 0.5rem;
-    border: 1px solid color-mix(in srgb, var(--tag) 55%, transparent);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--tag) 18%, transparent);
-    color: var(--tag);
-    font-size: 0.75rem;
-    font-weight: 600;
     overflow: hidden;
+    background: color-mix(in srgb, var(--tag) 14%, transparent);
+    color: var(--tag);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
