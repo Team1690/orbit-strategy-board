@@ -45,7 +45,7 @@
       tags.classList.toggle("dots", tags.scrollWidth > tags.clientWidth);
     };
     const observer = new ResizeObserver(fit);
-    observer.observe(tags.closest("th") ?? tags);
+    observer.observe(tags.closest(".team-head") ?? tags);
     void document.fonts.ready.then(fit);
     return () => observer.disconnect();
   }
@@ -158,79 +158,80 @@
     </header>
     <div class="stats-scroll flex-1 min-h-0 overflow-auto touch-pan-x touch-pan-y">
       <div class="stats-body">
-        <table id="stats-table" style:min-width={`calc(var(--label-width) + var(--gap-width) + ${view.columns.length} * 5.5rem)`}>
-          <colgroup>
-            <col class="label-column" />
-            {#each slots as index, slot (slot)}
-              <col class:gap-column={index === null} />
+        {#if stage?.notes.length}
+          {@const notes = stage.notes}
+          <div id="stats-notes" style:--blocks={Math.max(...view.alliances.map(({ columnIndexes }) => columnIndexes.length))}>
+            {#each view.alliances as { alliance, columnIndexes } (alliance)}
+              <div class="notes-row">
+                {#each columnIndexes as index (view.columns[index].place)}
+                  {@const teamNotes = notes[index]}
+                  <section class="team-notes" class:bench={view.columns[index].bench}>
+                    <header class="team-head">{@render teamHeader(view.columns[index])}</header>
+                    {#if teamNotes}
+                      {#if teamNotes.defenseStarred || teamNotes.scouters}
+                        <p class="note-meta">
+                          {#if teamNotes.defenseStarred}
+                            <span class="defense-starred"><i class="fas fa-shield-halved" aria-hidden="true"></i> Starred defense</span>
+                          {/if}
+                          {#if teamNotes.scouters}
+                            <span>{teamNotes.scouters}</span>
+                          {/if}
+                        </p>
+                      {/if}
+                      {#each teamNotes.categories as category (category.label)}
+                        <section class="category" dir={category.dir}>
+                          <h3 dir="ltr">
+                            {category.label}
+                            {#if category.stars !== null}
+                              <span class="rating">
+                                <span class="stars" role="img" aria-label={`${category.stars} of 5 stars`}>
+                                  {#each [1, 2, 3, 4, 5] as star (star)}
+                                    <i class="fas fa-star" class:lit={star <= (category.stars ?? 0)} aria-hidden="true"></i>
+                                  {/each}
+                                </span>
+                                {#if category.average}
+                                  avg
+                                {/if}
+                              </span>
+                            {/if}
+                          </h3>
+                          {#if category.latest}
+                            <p class="latest">{category.latest}</p>
+                          {/if}
+                          {#if category.more}
+                            <p class="more" dir="ltr">{category.more}</p>
+                          {/if}
+                        </section>
+                      {:else}
+                        <p class="faint">No notes</p>
+                      {/each}
+                    {/if}
+                  </section>
+                {/each}
+              </div>
             {/each}
-          </colgroup>
-          <thead>
-            <tr>
-              <th class="row-label" scope="col"><span class="sr-only">Row</span></th>
+          </div>
+        {:else}
+          <table id="stats-table" style:min-width={`calc(var(--label-width) + var(--gap-width) + ${view.columns.length} * 5.5rem)`}>
+            <colgroup>
+              <col class="label-column" />
               {#each slots as index, slot (slot)}
-                {#if index === null}
-                  <td class="gap" aria-hidden="true"></td>
-                {:else}
-                  <th class="team-head" class:bench={view.columns[index].bench} scope="col">{@render teamHeader(view.columns[index])}</th>
-                {/if}
+                <col class:gap-column={index === null} />
               {/each}
-            </tr>
-          </thead>
-          <tbody>
-            {#if stage?.notes.length}
-              <tr class="notes">
-                <th class="row-label" scope="row"><span class="sr-only">Notes</span></th>
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="row-label" scope="col"><span class="sr-only">Row</span></th>
                 {#each slots as index, slot (slot)}
                   {#if index === null}
                     <td class="gap" aria-hidden="true"></td>
                   {:else}
-                    {@const notes = stage.notes[index]}
-                    <td class:bench={view.columns[index].bench}>
-                      {#if notes}
-                        {#if notes.defenseStarred || notes.scouters}
-                          <p class="note-meta">
-                            {#if notes.defenseStarred}
-                              <span class="defense-starred"><i class="fas fa-shield-halved" aria-hidden="true"></i> Starred defense</span>
-                            {/if}
-                            {#if notes.scouters}
-                              <span>{notes.scouters}</span>
-                            {/if}
-                          </p>
-                        {/if}
-                        {#each notes.categories as category (category.label)}
-                          <section class="category" dir={category.dir}>
-                            <h3 dir="ltr">
-                              {category.label}
-                              {#if category.stars !== null}
-                                <span class="rating">
-                                  <span class="stars" role="img" aria-label={`${category.stars} of 5 stars`}>
-                                    {#each [1, 2, 3, 4, 5] as star (star)}
-                                      <i class="fas fa-star" class:lit={star <= (category.stars ?? 0)} aria-hidden="true"></i>
-                                    {/each}
-                                  </span>
-                                  {#if category.average}
-                                    avg
-                                  {/if}
-                                </span>
-                              {/if}
-                            </h3>
-                            {#if category.latest}
-                              <p class="latest">{category.latest}</p>
-                            {/if}
-                            {#if category.more}
-                              <p class="more" dir="ltr">{category.more}</p>
-                            {/if}
-                          </section>
-                        {:else}
-                          <p class="faint">No notes</p>
-                        {/each}
-                      {/if}
-                    </td>
+                    <th class="team-head" class:bench={view.columns[index].bench} scope="col">{@render teamHeader(view.columns[index])}</th>
                   {/if}
                 {/each}
               </tr>
-            {:else}
+            </thead>
+            <tbody>
               {#if stage?.totals}
                 <tr class="totals">
                   <th class="row-label" scope="row">Alliance Total</th>
@@ -296,10 +297,11 @@
                         {@const cells = line.cells[index]}
                         <td class:bench={view.columns[index].bench}>
                           {#if cells}
-                            <span class="slots">
+                            <span class="slots" style:--slot-count={cells.length}>
                               {#each cells as gridCell, cellIndex (cellIndex)}
                                 <span>
                                   {#if gridCell.zero}
+                                    <span class="faint" aria-hidden="true">·</span>
                                     <span class="sr-only">{gridCell.text}</span>
                                   {:else}
                                     {gridCell.text}
@@ -315,9 +317,9 @@
                 {/each}
                 {@render explanationRow(grid.label, grid.explanation)}
               {/each}
-            {/if}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        {/if}
         {#if stage?.faults.length}
           <StatsFaultList teams={stage.faults} />
         {/if}
@@ -507,7 +509,7 @@
     background: linear-gradient(var(--page), transparent);
     pointer-events: none;
   }
-  #stats-table .team-head > span { display: block; }
+  .team-head > span { display: block; }
   .team-line {
     position: relative;
     width: fit-content;
@@ -529,7 +531,7 @@
     transform: translateY(-50%);
   }
   /* only the tags give way when a column is narrow - the Station and the fault mark always show */
-  #stats-table .team-head > .team-meta {
+  .team-head > .team-meta {
     display: flex;
     justify-content: center;
     gap: 0.45em;
@@ -617,20 +619,36 @@
     padding-bottom: 0.15rem;
   }
   #stats-table tr.grid-line .row-label { padding-left: 0.6rem; }
+  #stats-table tr.grid-line td {
+    padding-right: 0.15rem;
+    padding-left: 0.15rem;
+  }
+  /* a fixed slot per side - so a lone attempt still reads as left, middle or right */
   .slots {
     display: grid;
-    grid-auto-columns: minmax(0, 1fr);
-    grid-auto-flow: column;
-    max-width: 7.5rem;
-    margin: 0 auto;
+    grid-template-columns: repeat(var(--slot-count), 1.85rem);
+    justify-content: center;
+    align-items: baseline;
     font-size: var(--small);
   }
 
-  #stats-table tr.notes td {
-    padding-top: 0.25rem;
-    white-space: normal;
-    vertical-align: top;
+  #stats-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+    padding-top: 1rem;
   }
+  /* both rows share one column count - so a Bench Team on one alliance doesn't shift the other's blocks */
+  .notes-row {
+    display: grid;
+    grid-template-columns: repeat(var(--blocks), minmax(0, 1fr));
+    gap: 2.5rem;
+    align-items: start;
+  }
+  .team-notes.bench { opacity: 0.4; }
+  .team-notes .team-head { margin-bottom: 1rem; }
+  .team-notes .team-line { margin: 0; }
+  .team-notes .team-head > .team-meta { justify-content: flex-start; }
   .note-meta {
     margin-bottom: 1rem;
     font-size: var(--small);
@@ -638,6 +656,8 @@
   .note-meta > * { display: block; }
   .defense-starred { color: var(--hi); }
   .category + .category { margin-top: 1.1rem; }
+  /* the label and the count stay left to right - but follow a hebrew note to the right */
+  .category[dir="rtl"] > [dir="ltr"] { text-align: right; }
   .category h3 {
     font-size: var(--small);
     font-weight: 400;
@@ -666,5 +686,5 @@
     margin-top: 0.15rem;
     font-size: var(--small);
   }
-  #stats-table tr.notes .faint { font-size: var(--small); }
+  .team-notes .faint { font-size: var(--small); }
 </style>
