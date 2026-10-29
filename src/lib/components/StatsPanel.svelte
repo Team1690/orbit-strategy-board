@@ -169,7 +169,7 @@
                     {#each card.notes.categories as category (category.label)}
                       <!-- a hebrew note pulls its label to the right too - so each category reads as one block -->
                       <section class="category" dir={category.dir}>
-                        <h3>
+                        <h3 dir="ltr">
                           <span>{category.label}</span>
                           {#if category.stars !== null}
                             <span class="stars" dir="ltr" role="img" aria-label={`${category.stars} of 5 stars`}>
@@ -186,7 +186,7 @@
                           <p class="latest">{category.latest}</p>
                         {/if}
                         {#if category.more}
-                          <p class="more">{category.more}</p>
+                          <p class="more" dir="ltr">{category.more}</p>
                         {/if}
                       </section>
                     {:else}
@@ -259,7 +259,6 @@
                   </td>
                 {/each}
               </tr>
-              {@render explanationRow(grid.label, grid.explanation, span)}
               {#each grid.lines as line, lineIndex (line.label)}
                 <tr class="grid-line" class:last={lineIndex === grid.lines.length - 1}>
                   <th class="row-label" scope="row">{line.label}</th>
@@ -276,6 +275,7 @@
                   {/each}
                 </tr>
               {/each}
+              {@render explanationRow(grid.label, grid.explanation, span)}
             {/each}
           </tbody>
         </table>
@@ -369,7 +369,9 @@
     font-weight: 600;
     cursor: pointer;
   }
-  .stage-tab:hover { color: var(--text); }
+  @media (hover: hover) {
+    .stage-tab:hover { color: var(--text); }
+  }
   .stage-tab.chosen {
     background: #2a2a2a;
     color: #f4f4f4;
@@ -693,6 +695,8 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+  .category[dir="rtl"] h3 { justify-content: flex-end; }
+  .category[dir="rtl"] .more { text-align: right; }
   .stars {
     display: inline-flex;
     gap: 0.1rem;
