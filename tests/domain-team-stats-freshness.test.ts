@@ -34,7 +34,7 @@ function tables(lastFetch: TeamStatsFetch, now: number, packet = quals5) {
 
 describe("Stats tab freshness", () => {
   it("says how long ago the numbers were Confirmed, on the tablet's clock", () => {
-    expect(tables({ kind: "ok", answer: answer() }, confirmedAt + 3 * MINUTE + 20_000).freshness).toEqual({ confirmed: "Confirmed 3 minutes ago", unreachable: null });
+    expect(tables({ kind: "ok", answer: answer() }, confirmedAt + 3 * MINUTE + 20_000).freshness).toEqual({ confirmed: "Confirmed 3 minutes ago", stale: false, unreachable: null });
   });
 
   it("counts whole minutes, then whole hours", () => {
@@ -55,6 +55,16 @@ describe("Stats tab freshness", () => {
   it("says the Team Stats haven't been Confirmed yet when there's no Confirmed row", () => {
     expect(tables({ kind: "ok", answer: answer(null) }, confirmedAt).freshness.confirmed).toBe("Not Confirmed yet");
   });
+
+  it("calls the numbers stale once they were Confirmed 10 minutes ago or more, or never", () => {
+    const stale = (elapsed: number) => tables({ kind: "ok", answer: answer() }, confirmedAt + elapsed).freshness.stale;
+
+    expect(stale(0)).toBe(false);
+    expect(stale(10 * MINUTE - 1)).toBe(false);
+    expect(stale(10 * MINUTE)).toBe(true);
+    expect(stale(3 * HOUR)).toBe(true);
+    expect(tables({ kind: "ok", answer: answer(null) }, confirmedAt).freshness.stale).toBe(true);
+  });
 });
 
 describe("Stats tab when the database can't be reached", () => {
@@ -63,7 +73,7 @@ describe("Stats tab when the database can't be reached", () => {
     const online = tables({ kind: "ok", answer: answer() }, now);
     const offline = tables({ kind: "unreachable", detail: "fetch failed", cached: { answer: answer(), fetchedAt: confirmedAt + MINUTE } }, now);
 
-    expect(offline.freshness).toEqual({ confirmed: "Confirmed 2 hours ago", unreachable: { title: "Can't reach the database", detail: "fetch failed" } });
+    expect(offline.freshness).toEqual({ confirmed: "Confirmed 2 hours ago", stale: true, unreachable: { title: "Can't reach the database", detail: "fetch failed" } });
     expect({ ...offline, freshness: online.freshness }).toEqual(online);
   });
 

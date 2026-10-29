@@ -11,6 +11,8 @@ import { textDirection, type TextDirection } from "./text-direction";
 export const TEAM_STATS_FORMAT_VERSION = 1;
 
 const MINUTE_MS = 60_000;
+// a Synced Strategy device stamps Confirmed every minute - this long without one is more than a match behind
+const STALE_MINUTES = 10;
 const UNREACHABLE = "Can't reach the database";
 
 export interface StatsViewInput {
@@ -97,18 +99,26 @@ export interface StatsGridCell {
   zero: boolean;
 }
 
-export interface StatsTeamGrid {
+interface TeamGrid {
   rows: string[];
   columns: string[];
   // one list per row label - each as long as columns
   cells: StatsGridCell[][];
 }
 
+export interface StatsGridLine {
+  label: string;
+  // one per column - null where the team has no grid to draw
+  cells: Array<StatsGridCell[] | null>;
+}
+
+// drawn as rows of the Stage's table so each team's grid sits in its own column
 export interface StatsGrid {
   label: string;
   explanation: string | null;
-  // one per column - null where the team has no grid to draw
-  teams: Array<StatsTeamGrid | null>;
+  columns: string[];
+  // one per row label
+  lines: StatsGridLine[];
 }
 
 export interface StatsNoteCategory {
@@ -163,6 +173,8 @@ export interface StatsNotice {
 export interface StatsFreshness {
   // how long ago the numbers were Confirmed
   confirmed: string;
+  // Confirmed long ago or never - drawn so old numbers look old
+  stale: boolean;
   // set when the last fetch failed and the numbers are the ones the tablet kept
   unreachable: StatsNotice | null;
 }
@@ -275,7 +287,7 @@ function isTexts(value: unknown): value is string[] {
 }
 
 // a grid whose cells don't line up with its labels has nothing sure to draw
-function teamGrid(value: JsonValue): StatsTeamGrid | null {
+function teamGrid(value: JsonValue): TeamGrid | null {
   if (!isObject(value) || value.kind !== "grid") return null;
   const { rows, columns, cells } = value;
   if (!isTexts(rows) || !isTexts(columns) || !Array.isArray(cells)) return null;
@@ -284,12 +296,21 @@ function teamGrid(value: JsonValue): StatsTeamGrid | null {
   return { rows, columns, cells: lines.map((line) => line.map((text) => ({ text, zero: NOUGHT.test(text) }))) };
 }
 
+function sameLabels(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((label, index) => label === right[index]);
+}
+
 // a row is a grid when any team sends it as one - so it never also shows in the table as dashes
+// every team's cells sit under the first team's labels - so a grid labelled otherwise has nothing sure to draw
 function stageGrids(teamStages: Array<PublishedStage | undefined>, columns: StatsColumn[]): StatsGrid[] {
   const labels = unique(teamStages.flatMap((stage) => stage?.rows.filter((row) => isObject(row.value) && row.value.kind === "grid").map((row) => row.label) ?? []));
   return labels.map((label) => {
     const { rows, explanation } = rowsLabelled(teamStages, label);
-    return { label, explanation, teams: rows.map((row, index) => (row && !columns[index].noData ? teamGrid(row.value) : null)) };
+    const grids = rows.map((row, index) => (row && !columns[index].noData ? teamGrid(row.value) : null));
+    const shape = grids.find((grid) => grid !== null);
+    if (!shape) return { label, explanation, columns: [], lines: [] };
+    const fitting = grids.map((grid) => (grid && sameLabels(grid.rows, shape.rows) && sameLabels(grid.columns, shape.columns) ? grid : null));
+    return { label, explanation, columns: shape.columns, lines: shape.rows.map((rowLabel, line) => ({ label: rowLabel, cells: fitting.map((grid) => grid?.cells[line] ?? null) })) };
   });
 }
 
@@ -411,12 +432,13 @@ function eventBanner(packet: MatchPacket, shown: TeamStats[], answer: TeamStatsA
 }
 
 // a server clock ahead of the tablet's would read as a time to come
-function confirmedAgo(answer: TeamStatsAnswer, now: number): string {
+function confirmedAgo(answer: TeamStatsAnswer, now: number): Pick<StatsFreshness, "confirmed" | "stale"> {
   const at = Date.parse(answer.team_stats_confirmed[0]?.confirmed_at ?? "");
-  if (!Number.isFinite(at)) return "Not Confirmed yet";
+  if (!Number.isFinite(at)) return { confirmed: "Not Confirmed yet", stale: true };
   const minutes = Math.floor(Math.max(0, now - at) / MINUTE_MS);
-  if (minutes < 1) return "Confirmed less than a minute ago";
-  return `Confirmed ${minutes < 60 ? plural(minutes, "minute") : plural(Math.floor(minutes / 60), "hour")} ago`;
+  const stale = minutes >= STALE_MINUTES;
+  if (minutes < 1) return { confirmed: "Confirmed less than a minute ago", stale };
+  return { confirmed: `Confirmed ${minutes < 60 ? plural(minutes, "minute") : plural(Math.floor(minutes / 60), "hour")} ago`, stale };
 }
 
 export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLighten, now }: StatsViewInput): StatsView {
@@ -472,6 +494,6 @@ export function statsView({ lastFetch, packet, chosenStage, teamColors, autoLigh
   return {
     kind: "stats", columns, alliances, estimatedScores: allianceSums(columns, teams.map(({ payload }) => estimatedPoints(payload))), stages,
     eventBanner: eventBanner(packet, teams.flatMap(({ row }) => row ?? []), answer),
-    freshness: { confirmed: confirmedAgo(answer, now), unreachable: lastFetch.kind === "unreachable" ? { title: UNREACHABLE, detail: lastFetch.detail } : null },
+    freshness: { ...confirmedAgo(answer, now), unreachable: lastFetch.kind === "unreachable" ? { title: UNREACHABLE, detail: lastFetch.detail } : null },
   };
 }

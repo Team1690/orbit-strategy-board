@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newMatchPacket, statsView, type StatsGrid, type StatsTeamGrid, type StatsViewInput } from "$lib/domain";
+import { newMatchPacket, statsView, type StatsGrid, type StatsViewInput } from "$lib/domain";
 import type { Alliance, JsonObject, MatchPacket, TeamStatsAnswer } from "$lib/native/types";
 
 import golden from "./fixtures/scouting-team-stats.json";
@@ -39,9 +39,15 @@ function climbLadder(answer: TeamStatsAnswer = fixture, packet = quals5()): Stat
   return grid;
 }
 
-// a team's grid the way it reads - the column labels and then each row label with its cells
-function read(grid: StatsTeamGrid | null): string[] | null {
-  return grid && [grid.columns.join(" "), ...grid.rows.map((label, index) => [label, ...grid.cells[index].map((cell) => cell.text)].join(" "))];
+// one team's grid the way it reads in its column - the column labels and then each row label with its cells
+function read(grid: StatsGrid, column: number): string[] | null {
+  const lines = grid.lines.map((line) => line.cells[column]);
+  if (!lines.length || lines.some((cells) => cells === null)) return null;
+  return [grid.columns.join(" "), ...grid.lines.map((line, index) => [line.label, ...(lines[index] ?? []).map((cell) => cell.text)].join(" "))];
+}
+
+function teamsWithGrids(grid: StatsGrid): boolean[] {
+  return (grid.lines[0]?.cells ?? []).map((cells) => cells !== null);
 }
 
 describe("Stats tab yes or no rows", () => {
@@ -76,8 +82,10 @@ describe("Stats tab small grids", () => {
     expect(stageOf(fixture, "Pit").grids).toEqual([]);
   });
 
-  it("draws one grid per team in Station order", () => {
-    expect(climbLadder().teams.map(read)).toEqual([
+  it("draws each team's grid in its column, in Station order", () => {
+    const ladder = climbLadder();
+
+    expect([0, 1, 2, 3, 4, 5].map((column) => read(ladder, column))).toEqual([
       ["Left Middle Right", "L3 2/2 1/1 0/0", "L2 0/0 0/0 0/0", "L1 0/0 0/0 0/0"],
       ["Left Middle Right", "L3 0/0 0/0 0/0", "L2 0/0 0/0 0/0", "L1 0/0 0/0 0/0"],
       ["Left Middle Right", "L3 0/0 0/0 0/0", "L2 0/0 0/0 0/0", "L1 0/0 1/2 0/0"],
@@ -88,13 +96,13 @@ describe("Stats tab small grids", () => {
   });
 
   it("draws a cell that reads nought faint, so the cells with something in them stand out", () => {
-    const ours = climbLadder().teams[3];
+    const ours = climbLadder().lines.map((line) => line.cells[3]);
 
-    expect(ours?.cells.map((row) => row.map((cell) => cell.zero))).toEqual([[true, false, true], [false, true, true], [true, true, true]]);
+    expect(ours.map((cells) => cells?.map((cell) => cell.zero))).toEqual([[true, false, true], [false, true, true], [true, true, true]]);
   });
 
   it("has no grid for a team without Team Stats", () => {
-    expect(climbLadder(fixture, quals5(["254", "4590", "5987"])).teams.map((grid) => grid !== null)).toEqual([true, true, false, true, true, true]);
+    expect(teamsWithGrids(climbLadder(fixture, quals5(["254", "4590", "5987"])))).toEqual([true, true, false, true, true, true]);
   });
 
   it("has no grid for a team that didn't send one, or sent one that doesn't hold together", () => {
@@ -105,8 +113,29 @@ describe("Stats tab small grids", () => {
       publishedRow(copy, 3339, "Endgame", "Climb Ladder").value = { kind: "grid", rows: ["L3", "L2", "L1"], columns: ["Left", "Middle", "Right"], cells: [["0/0", "0/0", "0/0"]] };
     });
 
-    expect(climbLadder(answer).teams.map((grid) => grid !== null)).toEqual([true, true, true, true, false, false]);
+    expect(teamsWithGrids(climbLadder(answer))).toEqual([true, true, true, true, false, false]);
     expect(stageOf(answer, "Endgame").rows.map((row) => row.label)).toEqual(["Climb Level", "Time Avg", "Climb (S/A/P)"]);
+  });
+
+  it("has no grid for a team whose grid is labelled differently from the first team's, since its cells would sit under the wrong labels", () => {
+    const answer = edited((copy) => {
+      publishedRow(copy, 1657, "Endgame", "Climb Ladder").value = { kind: "grid", rows: ["L3", "L2", "L1"], columns: ["Right", "Middle", "Left"], cells: [["0/0", "0/0", "0/0"], ["0/0", "0/0", "0/0"], ["0/0", "0/0", "0/0"]] };
+    });
+
+    expect(climbLadder(answer).columns).toEqual(["Left", "Middle", "Right"]);
+    expect(teamsWithGrids(climbLadder(answer))).toEqual([true, true, true, true, false, true]);
+  });
+
+  it("draws the grid's labels and no lines when no team has a grid that holds together", () => {
+    const answer = edited((copy) => {
+      for (const row of copy.team_stats) {
+        const stages = (row.payload as { stages: Array<{ label: string; rows: JsonObject[] }> }).stages;
+        const ladder = stages.find((stage) => stage.label === "Endgame")?.rows.find((candidate) => candidate.label === "Climb Ladder");
+        if (ladder) ladder.value = { kind: "grid", rows: ["L3"], columns: ["Left"], cells: [] };
+      }
+    });
+
+    expect(climbLadder(answer)).toMatchObject({ label: "Climb Ladder", columns: [], lines: [] });
   });
 
   it("keeps a grid row's explanation on its grid", () => {
