@@ -450,7 +450,7 @@
 
   /* the padding sits inside the scroll box - on the box itself the sticky header would stop short of its top and rows would show above it */
   .stats-body {
-    padding: 0.5rem 1.5rem 2rem;
+    padding: 0 1.5rem 2rem;
   }
 
   #stats-table {
@@ -491,11 +491,22 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    padding: 0.5rem 0.2rem 0.9rem;
+    padding: 1rem 0.2rem 0.9rem;
     background: var(--page);
     vertical-align: top;
   }
   #stats-table thead .row-label { z-index: 3; }
+  /* rows scrolling up fade under the header instead of being cut off at its edge - unseen until something is under it */
+  #stats-table thead > tr > ::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 0.6rem;
+    background: linear-gradient(var(--page), transparent);
+    pointer-events: none;
+  }
   #stats-table .team-head > span { display: block; }
   .team-line {
     position: relative;
